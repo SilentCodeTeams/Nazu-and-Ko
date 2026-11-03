@@ -134,9 +134,10 @@ fn parse_client_hello(record_version: u16, body: &[u8]) -> Option<TlsInfo> {
     reader.skip(session_len)?;
     let suites_len = reader.u16()? as usize;
     let suites = reader.take(suites_len)?;
-    let cipher_suites = suites
-        .chunks_exact(2)
-        .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
+    let (suite_chunks, _) = suites.as_chunks::<2>();
+    let cipher_suites = suite_chunks
+        .iter()
+        .map(|chunk| u16::from_be_bytes(*chunk))
         .collect::<Vec<_>>();
     let compression_len = reader.u8()? as usize;
     reader.skip(compression_len)?;
@@ -292,8 +293,10 @@ fn parse_supported_versions(data: &[u8]) -> Vec<u16> {
         Some(v) => v,
         None => return Vec::new(),
     };
-    list.chunks_exact(2)
-        .map(|chunk| u16::from_be_bytes([chunk[0], chunk[1]]))
+    let (version_chunks, _) = list.as_chunks::<2>();
+    version_chunks
+        .iter()
+        .map(|chunk| u16::from_be_bytes(*chunk))
         .collect()
 }
 
