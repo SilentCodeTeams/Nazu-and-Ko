@@ -1,64 +1,65 @@
-# NetTool ζ (nettool-zeta)
+# NetTool
 
-Rust core for the next generation of NetTool. Phase 1 is a working TCP proxy
-with a version-aware protocol registry, real pcap capture and an offline
-analyzer.
+**Part of [SilentStudio](https://github.com/Silent-Studio-CN)**
 
-The Python prototype in the parent directory (NetTool delta) stays as a
-behavioral reference. This workspace is dependency-free so it builds offline
-on macOS, Windows x64, Windows ARM64 and Linux.
+**English** | **中文**
 
-## Status
+NetTool is the Rust core for network protocol analysis and authorized security
+testing. It replaces the Python NetTool prototype with a dependency-free,
+cross-platform implementation.
 
-Phase 1 foundation complete:
+NetTool 是网络协议分析与授权安全测试的 Rust 核心，用零外部依赖、跨平台的
+实现替代 Python 原型。
 
-- VarInt codec and Minecraft length-prefixed framer (split and coalesced reads)
-- Protocol registry with confidence-ranked dissectors
-- TLS / SSL: SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3; ClientHello / ServerHello;
-  SNI, ALPN, cipher suites
-- HTTP: HTTP/0.9, 1.0, 1.1, HTTP/2 preface; request/response start lines and
-  headers; WebSocket upgrade detection
-- DNS question parsing
-- QUIC long-header / version detection
-- Transparent TCP relay with per-direction capture
-- PacketEvent + EventSink boundary; pcap and console are just sinks
-- Process model and MAC lease state machine (nettool-control)
-- Real classic pcap writer (Ethernet + IPv4 + TCP) and reader
-- CLI: proxy, analyze (with --dissect), version
-- 44 tests, zero external crates, clippy clean with -D warnings
+## Status / 状态
 
-Not yet: daemon API and Qt client, privileged MAC helper, TLS MITM/decryption,
-HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login state,
-packet-id drop rules, master/agent control plane, plugin runtime.
+English:
 
-## Protocol matrix
+- Phase 1 foundation is complete: protocol registry, transparent proxy, real
+  pcap, PacketEvent/EventSink, control types.
+- Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
+- 44 tests; fmt and clippy clean; CI green on macOS, Windows and Linux.
+- Not yet: daemon API and Qt client, privileged MAC helper, TLS MITM,
+  HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression, plugin runtime.
 
-    Protocol   Versions detected            Parsed in Phase 1
-    --------   --------------------------   -------------------------------
-    TLS/SSL    SSL3, TLS 1.0, 1.1, 1.2, 1.3  record, ClientHello, ServerHello,
-                                             SNI, ALPN, cipher suites
-    HTTP       0.9, 1.0, 1.1, 2 (preface)    start line, headers, WebSocket upgrade
-    DNS        standard query               question name, qtype, qclass
-    QUIC       v1, v2, draft-29             long header, version, DCID/SCID
-    WebSocket  RFC 6455                     upgrade handshake
-    Minecraft  handshake protocol version   VarInt framing, packet id
+中文：
 
-HTTP/3 is detected only as QUIC in Phase 1. Full HTTP/3 needs a QUIC stack and
-TLS 1.3 key schedule; that is a later phase.
+- Phase 1 地基完成：协议注册表、透明代理、真实 pcap、PacketEvent/EventSink、
+  控制类型。
+- 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
+- 44 个测试；fmt/clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
+- 尚未完成：daemon API 与 Qt 客户端、特权 MAC helper、TLS MITM、
+  HTTP/2 HPACK、HTTP/3、Minecraft 压缩、插件运行时。
 
-## Build
+## Protocol support / 协议支持
 
-    cd net2
+| Protocol | Versions detected | Parsed |
+| --- | --- | --- |
+| TLS/SSL | SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3 | record, ClientHello/ServerHello, SNI, ALPN, cipher suites |
+| HTTP | 0.9, 1.0, 1.1, 2 (preface) | start line, headers, WebSocket upgrade |
+| DNS | standard query | question name, qtype, qclass |
+| QUIC | v1, v2, draft-29 | long header, version, DCID/SCID |
+| WebSocket | RFC 6455 | upgrade handshake |
+| Minecraft | handshake protocol version | VarInt framing, packet id |
+
+HTTP/3 is detected only as QUIC. Full HTTP/3 needs a QUIC stack and the TLS 1.3
+key schedule; that is a later phase. HTTP/3 目前只做 QUIC 检测，完整实现需要
+QUIC 栈和 TLS 1.3 密钥调度。
+
+## Build / 构建
+
+From the repository root / 在仓库根目录：
+
     cargo test --workspace
     cargo build --release
 
-Quality gates used in CI:
+Quality gates / 质量门禁：
 
     cargo fmt --all -- --check
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
 
-## CLI
+## CLI / 命令行
 
     ./target/release/nettoold proxy \
       --listen 127.0.0.1:25565 \
@@ -70,23 +71,23 @@ Quality gates used in CI:
 
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
-Options:
+| Option | Default | Description |
+| --- | --- | --- |
+| --listen | 127.0.0.1:25565 | Local listen address |
+| --target | 127.0.0.1:25566 | Upstream target |
+| --protocol | auto | auto, mc, http, tls, dns, ws, quic, raw |
+| --pcap | none | Write a real pcap |
+| --duration | none | Stop accepting after N seconds |
+| --drop-direction | none | Drop c2s or s2c; still captured |
+| --quiet | off | Suppress per-packet output |
 
-    --listen <addr>          default 127.0.0.1:25565
-    --target <host:port>     default 127.0.0.1:25566
-    --protocol <mode>        auto | mc | http | tls | dns | ws | quic | raw
-    --pcap <file>            write a real pcap (Wireshark/tcpdump compatible)
-    --duration <seconds>     stop accepting after N seconds
-    --drop-direction <dir>   drop c2s or s2c (still captured and logged)
-    --quiet                  suppress per-packet output
-
-Example detection output:
+Example output / 示例输出：
 
     [conn 127.0.0.1:52950] tls TLS 1.3 sni=mc.example alpn=h2,http/1.1 ciphers=1
     #1 C->S 98B tls
     #2 S->C 98B tls
 
-## Layout
+## Layout / 目录
 
     crates/nettool-proto     VarInt, MC framing, registry, TLS/HTTP/DNS/QUIC
     crates/nettool-capture   pcap writer/reader, synthetic TCP frames
@@ -102,29 +103,39 @@ Example detection output:
     docs/AUTHORIZED-USE.md   allowed and prohibited use
     SECURITY.md              vulnerability reporting and safety boundary
 
-## Design decisions
+## Design / 设计
 
-- Rust-first. C is reserved for OS shims (BPF/pfctl, tc, Npcap/WinDivert/WFP),
-  not for parsers of untrusted bytes.
-- Stable C ABI for plugins. Rust cdylib builds produce .dylib/.dll/.so; no Rust
-  types cross the boundary.
-- Apache-2.0.
-- GUI will be a separate Qt 6 Widgets client over a daemon API. Qt was the
-  original target and matches the existing PySide6 UI; Tauri remains an option
-  for a web/remote client. The Python web dashboard is not ported into the core.
-- UI and backend are separate processes. The Qt client talks to nettoold over
-  a local authenticated API; a UI crash or restart does not stop capture, proxy
-  sessions or MAC leases.
-- MAC identity is owned by a privileged helper (nettool-macd) with explicit
-  leases, audit and restore. Leases end only by explicit release or helper
-  shutdown, never by a client disconnect. See docs/PROCESS-MODEL.md.
-- The proxy forwards raw bytes immediately. Framing is for display and capture
-  metadata; it never delays traffic.
-- Protocol detection never silently switches the target port. That behavior
-  caused the Python prototype's post-detection disconnect bug.
-- Multi-version parsing is metadata-first. We do not hand-roll cryptography;
-  TLS MITM will use a vetted library in a later phase.
+English:
 
-## License
+- Rust-first. C is reserved for OS shims, not for parsing untrusted bytes.
+- UI and backend are separate processes: Qt 6 client -> nettoold daemon ->
+  privileged helper. A UI crash does not stop capture or MAC leases.
+- MAC identity is owned by a privileged helper with explicit leases, audit and
+  restore. Leases end only on explicit release or helper shutdown.
+- Raw bytes are forwarded immediately; framing never delays traffic.
+- Protocol detection never silently changes the target port.
+- Multi-version parsing is metadata-first. No hand-written cryptography.
+
+中文：
+
+- Rust 优先；C 只用于操作系统薄垫片，不用于解析不可信输入。
+- UI 与后台分离：Qt 6 客户端 -> nettoold daemon -> 特权 helper。UI 崩溃不会
+  停止抓包或释放 MAC 租约。
+- MAC 由独立特权 helper 管理：显式租约、审计、可恢复；只有显式 release 或
+  helper shutdown 才结束。
+- 原始字节立即转发；分帧只做展示，不延迟转发。
+- 协议检测不会偷偷切换目标端口。
+- 多版本解析以元数据为先；不手写密码学。
+
+## Security / 安全
+
+NetTool is for systems you own or are explicitly authorized to test. It does not
+ship stealth, evasion or unauthorized remote-control features. See SECURITY.md
+and docs/AUTHORIZED-USE.md.
+
+NetTool 仅用于自有系统或获得书面授权的测试，不提供隐蔽、规避监控或未经授权
+的远程控制能力。详见 SECURITY.md 和 docs/AUTHORIZED-USE.md。
+
+## License / 许可证
 
 Apache-2.0. See LICENSE.
