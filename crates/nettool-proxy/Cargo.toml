@@ -1,0 +1,10 @@
+[package]
+name = "nettool-proxy"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "NetTool TCP proxy with Minecraft framing and pcap capture"
+
+[dependencies]
+nettool-proto = { path = "../nettool-proto" }
+nettool-capture = { path = "../nettool-capture" }
