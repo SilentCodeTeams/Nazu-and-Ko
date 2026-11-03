@@ -1,4 +1,4 @@
-//! Phase 0 proxy.
+//! Proxy: transparent TCP relay with protocol detection and an event bus.
 //!
 //! Design notes:
 //! - The client speaks first (Minecraft/HTTP/TLS). We read the first chunk,
@@ -7,13 +7,15 @@
 //!   prototype's protocol-detection race.
 //! - Raw bytes are forwarded immediately. Framing is used for display/pcap
 //!   metadata and never delays forwarding.
+//! - Every captured chunk becomes a PacketEvent. Pcap, console, the future
+//!   daemon and the GUI all consume the same EventSink interface.
 //! - Each connection has its own stop flag; both relay directions exit when
 //!   either side closes.
 
 use std::fs::File;
 use std::io::{self, Read, Write};
 use std::net::{IpAddr, Shutdown, SocketAddr, TcpListener, TcpStream, ToSocketAddrs};
-use std::path::PathBuf;
+use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -95,14 +97,112 @@ fn forced(protocol: Protocol, label: &str) -> Detection {
     }
 }
 
+/// One captured chunk, as seen by every event consumer.
 #[derive(Debug, Clone)]
+pub struct PacketEvent {
+    pub id: u64,
+    pub timestamp: SystemTime,
+    pub direction: Direction,
+    pub protocol: Protocol,
+    pub src: SocketAddr,
+    pub dst: SocketAddr,
+    pub seq: u32,
+    pub ack: u32,
+    pub data: Vec<u8>,
+    pub frames: Vec<Frame>,
+    pub dropped: bool,
+}
+
+/// A consumer of PacketEvents. Implementations must be Send because they are
+/// shared by the two relay threads.
+pub trait EventSink: Send {
+    fn on_event(&mut self, event: &PacketEvent) -> io::Result<()>;
+}
+
+/// Shared handle to an event consumer. The proxy fans every event out to all
+/// registered sinks; pcap, console, daemon and tests use the same type.
+pub type SharedSink = Arc<Mutex<dyn EventSink>>;
+
+/// Writes every event to a classic pcap file.
+pub struct PcapSink {
+    writer: PcapWriter<File>,
+}
+
+impl PcapSink {
+    pub fn create(path: impl AsRef<Path>) -> io::Result<Self> {
+        Ok(Self {
+            writer: PcapWriter::new(File::create(path)?)?,
+        })
+    }
+}
+
+impl EventSink for PcapSink {
+    fn on_event(&mut self, event: &PacketEvent) -> io::Result<()> {
+        if let (IpAddr::V4(src_ip), IpAddr::V4(dst_ip)) = (event.src.ip(), event.dst.ip()) {
+            let segment = TcpSegment {
+                src_ip,
+                dst_ip,
+                src_port: event.src.port(),
+                dst_port: event.dst.port(),
+                seq: event.seq,
+                ack: event.ack,
+                payload: &event.data,
+            };
+            self.writer.write_tcp(event.timestamp, &segment)?;
+        }
+        Ok(())
+    }
+}
+
+/// Prints one line per captured packet or Minecraft frame.
+#[derive(Debug, Default)]
+pub struct ConsoleSink;
+
+impl ConsoleSink {
+    pub fn new() -> Self {
+        Self
+    }
+}
+
+impl EventSink for ConsoleSink {
+    fn on_event(&mut self, event: &PacketEvent) -> io::Result<()> {
+        let suffix = if event.dropped { " dropped" } else { "" };
+        if event.protocol == Protocol::Minecraft && !event.frames.is_empty() {
+            for frame in &event.frames {
+                let id = packet_id(&frame.payload)
+                    .map(|value| format!("0x{value:02x}"))
+                    .unwrap_or_else(|| "unknown".to_string());
+                println!(
+                    "#{} {} {}B mc id={}{}",
+                    event.id,
+                    event.direction.as_str(),
+                    frame.payload.len(),
+                    id,
+                    suffix
+                );
+            }
+        } else {
+            println!(
+                "#{} {} {}B {}{}",
+                event.id,
+                event.direction.as_str(),
+                event.data.len(),
+                event.protocol.as_str(),
+                suffix
+            );
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
 pub struct ProxyConfig {
     pub listen: SocketAddr,
     pub target_host: String,
     pub target_port: u16,
     pub protocol: DetectMode,
-    pub pcap: Option<PathBuf>,
-    pub quiet: bool,
+    pub sinks: Vec<SharedSink>,
+    pub verbose: bool,
     pub drop_direction: Option<Direction>,
     pub duration: Option<Duration>,
 }
@@ -114,8 +214,8 @@ impl Default for ProxyConfig {
             target_host: "127.0.0.1".to_string(),
             target_port: 25566,
             protocol: DetectMode::Auto,
-            pcap: None,
-            quiet: false,
+            sinks: Vec::new(),
+            verbose: true,
             drop_direction: None,
             duration: None,
         }
@@ -229,7 +329,7 @@ fn handle_connection(
     first.truncate(n);
     let detection = config.protocol.resolve(&first);
     let protocol = detection.protocol;
-    if !config.quiet && protocol != Protocol::Unknown {
+    if config.verbose && protocol != Protocol::Unknown {
         eprintln!(
             "[conn {}] {} {} {}",
             client_addr,
@@ -247,7 +347,11 @@ fn handle_connection(
     server.set_read_timeout(Some(Duration::from_secs(1)))?;
     client.set_read_timeout(Some(Duration::from_secs(1)))?;
 
-    let sink = Arc::new(Mutex::new(Sink::new(&config, client_addr, target_addr)?));
+    let dispatcher = Arc::new(Mutex::new(Dispatcher::new(
+        &config,
+        client_addr,
+        target_addr,
+    )));
 
     let client_read = client.try_clone()?;
     let server_write = server.try_clone()?;
@@ -255,7 +359,7 @@ fn handle_connection(
     let client_write = client.try_clone()?;
 
     let s2c_running = conn_running.clone();
-    let s2c_sink = sink.clone();
+    let s2c_sink = dispatcher.clone();
     let s2c = thread::spawn(move || {
         relay(
             server_read,
@@ -274,7 +378,7 @@ fn handle_connection(
         client_read,
         server_write,
         Direction::ClientToServer,
-        sink,
+        dispatcher,
         c2s_running,
         protocol,
         Some(first),
@@ -292,7 +396,7 @@ fn relay(
     mut from: TcpStream,
     mut to: TcpStream,
     direction: Direction,
-    sink: Arc<Mutex<Sink>>,
+    dispatcher: Arc<Mutex<Dispatcher>>,
     running: Arc<AtomicBool>,
     protocol: Protocol,
     initial: Option<Vec<u8>>,
@@ -330,10 +434,10 @@ fn relay(
         };
 
         {
-            let mut sink = sink.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
-            if let Err(e) = sink.record(direction, &data, &frames, protocol) {
-                eprintln!("[capture] {}", e);
-            }
+            let mut dispatcher = dispatcher
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
+            dispatcher.record(direction, &data, &frames, protocol, drop_this_direction);
         }
 
         if !drop_this_direction && to.write_all(&data).is_err() {
@@ -346,31 +450,25 @@ fn relay(
     let _ = from.shutdown(Shutdown::Both);
 }
 
-struct Sink {
-    pcap: Option<PcapWriter<File>>,
-    quiet: bool,
+struct Dispatcher {
+    sinks: Vec<SharedSink>,
     client: SocketAddr,
     target: SocketAddr,
     c2s_seq: u32,
     s2c_seq: u32,
-    packet_id: u64,
+    next_id: u64,
 }
 
-impl Sink {
-    fn new(config: &ProxyConfig, client: SocketAddr, target: SocketAddr) -> io::Result<Self> {
-        let pcap = match &config.pcap {
-            Some(path) => Some(PcapWriter::new(File::create(path)?)?),
-            None => None,
-        };
-        Ok(Self {
-            pcap,
-            quiet: config.quiet,
+impl Dispatcher {
+    fn new(config: &ProxyConfig, client: SocketAddr, target: SocketAddr) -> Self {
+        Self {
+            sinks: config.sinks.clone(),
             client,
             target,
             c2s_seq: 0,
             s2c_seq: 0,
-            packet_id: 0,
-        })
+            next_id: 0,
+        }
     }
 
     fn record(
@@ -379,50 +477,32 @@ impl Sink {
         data: &[u8],
         frames: &[Frame],
         protocol: Protocol,
-    ) -> io::Result<()> {
+        dropped: bool,
+    ) {
         let (src, dst, seq, ack) = match direction {
             Direction::ClientToServer => (self.client, self.target, self.c2s_seq, self.s2c_seq),
             Direction::ServerToClient => (self.target, self.client, self.s2c_seq, self.c2s_seq),
         };
 
-        if let (IpAddr::V4(src_ip), IpAddr::V4(dst_ip)) = (src.ip(), dst.ip()) {
-            if let Some(pcap) = &mut self.pcap {
-                let segment = TcpSegment {
-                    src_ip,
-                    dst_ip,
-                    src_port: src.port(),
-                    dst_port: dst.port(),
-                    seq,
-                    ack,
-                    payload: data,
-                };
-                pcap.write_tcp(SystemTime::now(), &segment)?;
-            }
-        }
+        self.next_id += 1;
+        let event = PacketEvent {
+            id: self.next_id,
+            timestamp: SystemTime::now(),
+            direction,
+            protocol,
+            src,
+            dst,
+            seq,
+            ack,
+            data: data.to_vec(),
+            frames: frames.to_vec(),
+            dropped,
+        };
 
-        self.packet_id += 1;
-        if !self.quiet {
-            if protocol == Protocol::Minecraft && !frames.is_empty() {
-                for frame in frames {
-                    let id = packet_id(&frame.payload)
-                        .map(|v| format!("0x{:02x}", v))
-                        .unwrap_or_else(|| "unknown".to_string());
-                    println!(
-                        "#{} {} {}B mc id={}",
-                        self.packet_id,
-                        direction.as_str(),
-                        frame.payload.len(),
-                        id
-                    );
-                }
-            } else {
-                println!(
-                    "#{} {} {}B {}",
-                    self.packet_id,
-                    direction.as_str(),
-                    data.len(),
-                    protocol.as_str()
-                );
+        for sink in &self.sinks {
+            let mut sink = sink.lock().unwrap_or_else(|poisoned| poisoned.into_inner());
+            if let Err(e) = sink.on_event(&event) {
+                eprintln!("[sink] {}", e);
             }
         }
 
@@ -434,7 +514,6 @@ impl Sink {
                 self.s2c_seq = self.s2c_seq.wrapping_add(data.len() as u32)
             }
         }
-        Ok(())
     }
 }
 
@@ -443,8 +522,22 @@ mod tests {
     use super::*;
     use std::net::TcpListener;
 
+    struct RecordingSink {
+        events: Arc<Mutex<Vec<PacketEvent>>>,
+    }
+
+    impl EventSink for RecordingSink {
+        fn on_event(&mut self, event: &PacketEvent) -> io::Result<()> {
+            self.events
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner())
+                .push(event.clone());
+            Ok(())
+        }
+    }
+
     #[test]
-    fn relay_echo() {
+    fn relay_echo_and_events() {
         let echo = TcpListener::bind("127.0.0.1:0").unwrap();
         let echo_port = echo.local_addr().unwrap().port();
         thread::spawn(move || {
@@ -456,13 +549,17 @@ mod tests {
             }
         });
 
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let recording = Arc::new(Mutex::new(RecordingSink {
+            events: events.clone(),
+        }));
         let config = ProxyConfig {
             listen: "127.0.0.1:0".parse().unwrap(),
             target_host: "127.0.0.1".to_string(),
             target_port: echo_port,
             protocol: DetectMode::Raw,
-            pcap: None,
-            quiet: true,
+            sinks: vec![recording],
+            verbose: false,
             drop_direction: None,
             duration: Some(Duration::from_millis(500)),
         };
@@ -481,5 +578,17 @@ mod tests {
         let mut buf = [0u8; 16];
         let n = client.read(&mut buf).unwrap();
         assert_eq!(&buf[..n], b"hello");
+
+        let captured = events
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert!(captured.len() >= 2, "expected at least 2 events");
+        assert_eq!(captured[0].direction, Direction::ClientToServer);
+        assert_eq!(captured[0].data, b"hello");
+        assert_eq!(captured[0].protocol, Protocol::Unknown);
+        assert_eq!(captured[1].direction, Direction::ServerToClient);
+        assert_eq!(captured[1].data, b"hello");
+        assert_eq!(captured[1].seq, 0);
+        assert_eq!(captured[1].ack, 5);
     }
 }

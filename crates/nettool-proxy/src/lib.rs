@@ -3,4 +3,7 @@
 
 pub mod proxy;
 
-pub use proxy::{DetectMode, Direction, Proxy, ProxyConfig, ProxyHandle};
+pub use proxy::{
+    ConsoleSink, DetectMode, Direction, EventSink, PacketEvent, PcapSink, Proxy, ProxyConfig,
+    ProxyHandle, SharedSink,
+};

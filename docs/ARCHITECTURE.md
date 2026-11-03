@@ -12,10 +12,12 @@
     nettool-capture       pcap writer/reader, synthetic TCP frames
         ^
         |
-    nettool-proxy         TCP relay, direction drops, capture sink
+    nettool-proxy         TCP relay, EventSink fan-out, direction drops
         ^
         |
-    nettoold              CLI (proxy, analyze, version)
+    nettool-control       control types, no I/O
+    nettoold              CLI now, daemon API next
+    clients               Qt 6 / CLI / tests, separate processes
 
 Dependencies point one way. The protocol crate has no I/O and no external
 crates; capture and proxy depend on it. This keeps parsers testable and
@@ -54,20 +56,36 @@ dissectors will use the same trait once the plugin host lands.
 Framing is display metadata; it never delays forwarding. The exception will be
 an explicit framed-forwarding mode for packet-id drop rules in a later phase.
 
+## Process boundary
+
+    Qt client  --control API-->  nettoold  --helper API-->  nettool-macd
+                                 (capture,     (MAC leases,
+                                  proxy)        audit, restore)
+
+- Qt client: separate process, no link to the Rust core.
+- nettoold: daemon. A crash stops capture/proxy sessions but does not release
+  existing MAC leases.
+- nettool-macd: privileged helper. It survives UI and daemon restarts; a lease
+  ends only by explicit release or explicit helper shutdown.
+- The Qt client never talks to the helper directly.
+
+See docs/PROCESS-MODEL.md for the crash matrix and lease lifecycle.
+
 ## Event path today and next
 
-Today the relay owns a Sink that writes pcap and prints events. The next
-foundation step is an EventSink trait so the daemon, GUI and tests can consume
-the same PacketEvent stream:
+The relay owns a Dispatcher that fans each PacketEvent out to registered
+EventSink implementations:
 
     PacketEvent {
-        seq, timestamp, direction, protocol,
-        src, dst, seq_no, ack_no,
-        raw bytes, frames, dropped
+        id, timestamp, direction, protocol,
+        src, dst, seq, ack,
+        data, frames, dropped
     }
 
-This is required before the Tauri client and the control plane, and it keeps
-the CLI from being a special case.
+    SharedSink = Arc<Mutex<dyn EventSink>>
+
+Built-in sinks: PcapSink and ConsoleSink. The daemon, Qt client and tests will
+register their own sinks; the CLI is no longer a special case.
 
 ## Error strategy
 
@@ -89,14 +107,14 @@ use vetted libraries behind the same dissector boundary.
 
 Phase 0: MC framing, relay, real pcap, CLI.
 
-Phase 1 (current): protocol registry, TLS/HTTP/DNS/QUIC detection, docs, CI.
+Phase 1 (done): protocol registry, TLS/HTTP/DNS/QUIC detection, EventSink,
+control types, docs, CI.
 
-Phase 2: EventSink and daemon API, rule engine with packet predicates, MC
-compression and login state, HTTP/2 frames, TLS ClientHello/ServerHello
-dissection on every connection.
+Phase 2: daemon API and control server, rule engine with packet predicates,
+MC compression and login state, HTTP/2 frames, framed forwarding.
 
 Phase 3: capture backends (BPF, AF_PACKET, Npcap/WinDivert), kernel QoS,
-plugin host with C ABI and signed manifests.
+nettool-macd privileged helper, plugin host with C ABI and signed manifests.
 
-Phase 4: Tauri client, master/agent control plane with Ed25519 pairing and
-audit chain.
+Phase 4: Qt 6 Widgets client, master/agent control plane with Ed25519 pairing
+and audit chain.

@@ -4,6 +4,7 @@ members = [
     "crates/nettool-proto",
     "crates/nettool-capture",
     "crates/nettool-proxy",
+    "crates/nettool-control",
     "crates/nettoold",
 ]
 
@@ -12,7 +13,7 @@ version = "0.1.0"
 edition = "2021"
 license = "Apache-2.0"
 authors = ["SilentStudio"]
-repository = "https://github.com/silentstudio/nettool"
+repository = "https://github.com/Silent-xiaomiao/nettool-zeta"
 
 [profile.release]
 lto = "thin"

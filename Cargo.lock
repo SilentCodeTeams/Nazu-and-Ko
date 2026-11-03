@@ -10,6 +10,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "nettool-control"
+version = "0.1.0"
+
+[[package]]
 name = "nettool-proto"
 version = "0.1.0"
 

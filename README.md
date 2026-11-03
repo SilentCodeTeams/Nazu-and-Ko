@@ -1,4 +1,4 @@
-# NetTool 2 (net2)
+# NetTool ζ (nettool-zeta)
 
 Rust core for the next generation of NetTool. Phase 1 is a working TCP proxy
 with a version-aware protocol registry, real pcap capture and an offline
@@ -21,13 +21,15 @@ Phase 1 foundation complete:
 - DNS question parsing
 - QUIC long-header / version detection
 - Transparent TCP relay with per-direction capture
+- PacketEvent + EventSink boundary; pcap and console are just sinks
+- Process model and MAC lease state machine (nettool-control)
 - Real classic pcap writer (Ethernet + IPv4 + TCP) and reader
 - CLI: proxy, analyze (with --dissect), version
-- 38 tests, zero external crates, clippy clean with -D warnings
+- 44 tests, zero external crates, clippy clean with -D warnings
 
-Not yet: TLS MITM/decryption, HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft
-compression and login state, packet-id drop rules, master/agent control plane,
-plugin runtime, GUI.
+Not yet: daemon API and Qt client, privileged MAC helper, TLS MITM/decryption,
+HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login state,
+packet-id drop rules, master/agent control plane, plugin runtime.
 
 ## Protocol matrix
 
@@ -88,10 +90,13 @@ Example detection output:
 
     crates/nettool-proto     VarInt, MC framing, registry, TLS/HTTP/DNS/QUIC
     crates/nettool-capture   pcap writer/reader, synthetic TCP frames
-    crates/nettool-proxy     TCP relay, direction drops, capture sink
-    crates/nettoold          CLI entry point
+    crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops
+    crates/nettool-control   control types, session and MAC lease state machine
+    crates/nettoold          CLI entry point, daemon next
     docs/PROTOCOL.md         wire formats, versions and proxy semantics
     docs/ARCHITECTURE.md     crate graph, detection flow, extension points
+    docs/PROCESS-MODEL.md    UI / daemon / privileged helper, crash isolation
+    docs/CONTROL-API.md      daemon API message model
     docs/MIGRATION.md        Python -> Rust mapping and phases
     docs/PLUGIN-ABI.md       C ABI design for DLL/dylib plugins
     docs/AUTHORIZED-USE.md   allowed and prohibited use
@@ -104,8 +109,15 @@ Example detection output:
 - Stable C ABI for plugins. Rust cdylib builds produce .dylib/.dll/.so; no Rust
   types cross the boundary.
 - Apache-2.0.
-- GUI will be a separate client (Tauri preferred) over a daemon API. The
-  Python web dashboard is not ported into the core.
+- GUI will be a separate Qt 6 Widgets client over a daemon API. Qt was the
+  original target and matches the existing PySide6 UI; Tauri remains an option
+  for a web/remote client. The Python web dashboard is not ported into the core.
+- UI and backend are separate processes. The Qt client talks to nettoold over
+  a local authenticated API; a UI crash or restart does not stop capture, proxy
+  sessions or MAC leases.
+- MAC identity is owned by a privileged helper (nettool-macd) with explicit
+  leases, audit and restore. Leases end only by explicit release or helper
+  shutdown, never by a client disconnect. See docs/PROCESS-MODEL.md.
 - The proxy forwards raw bytes immediately. Framing is for display and capture
   metadata; it never delays traffic.
 - Protocol detection never silently switches the target port. That behavior

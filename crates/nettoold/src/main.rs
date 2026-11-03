@@ -1,7 +1,7 @@
 //! nettoold: Phase 0 CLI.
 //!
 //!   nettoold proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566
-//!                  [--protocol auto|mc|http|tls|raw]
+//!                  [--protocol auto|mc|http|tls|dns|ws|quic|raw]
 //!                  [--pcap out.pcap] [--duration 10] [--quiet]
 //!                  [--drop-direction c2s|s2c]
 //!
@@ -15,10 +15,11 @@ use std::fs::File;
 use std::io;
 use std::net::SocketAddr;
 use std::path::PathBuf;
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use nettool_capture::read_pcap;
-use nettool_proxy::{DetectMode, Direction, Proxy, ProxyConfig};
+use nettool_proxy::{ConsoleSink, DetectMode, Direction, PcapSink, Proxy, ProxyConfig, SharedSink};
 
 type CliResult = Result<(), Box<dyn Error>>;
 
@@ -102,13 +103,21 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         None => None,
     };
 
+    let mut sinks: Vec<SharedSink> = Vec::new();
+    if let Some(path) = &pcap {
+        sinks.push(Arc::new(Mutex::new(PcapSink::create(path)?)));
+    }
+    if !quiet {
+        sinks.push(Arc::new(Mutex::new(ConsoleSink::new())));
+    }
+
     let config = ProxyConfig {
         listen,
         target_host,
         target_port,
         protocol,
-        pcap,
-        quiet,
+        sinks,
+        verbose: !quiet,
         drop_direction,
         duration,
     };
