@@ -1,7 +1,5 @@
 # NetTool ζ
 
-**Part of [SilentStudio](https://github.com/Silent-Studio-CN)**
-
 English | [简体中文](language/README.zh-CN.md)
 
 NetTool is the Rust core for network protocol analysis and authorized security
