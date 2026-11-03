@@ -1,0 +1,113 @@
+# NetTool ζ（简体中文）
+
+**SilentStudio 旗下项目**
+
+[English](../README.md) | 简体中文
+
+NetTool 是用于网络协议分析与授权安全测试的 Rust 核心。它接替 Python 版
+NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客户端拆成独立进程。
+
+## 状态
+
+- Phase 1 地基完成：协议注册表、透明 TCP 代理、真实 pcap、PacketEvent/
+  EventSink、控制类型。
+- 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
+- 44 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
+- 尚未完成：daemon API 与 Qt 客户端、特权 MAC helper、TLS MITM、
+  HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
+
+## 协议支持
+
+| 协议 | 可检测版本 | 已解析 |
+| --- | --- | --- |
+| TLS/SSL | SSL 3.0、TLS 1.0、1.1、1.2、1.3 | record、ClientHello/ServerHello、SNI、ALPN、cipher suites |
+| HTTP | 0.9、1.0、1.1、2（preface） | 请求/响应行、头部、WebSocket Upgrade |
+| DNS | 标准查询 | question name、qtype、qclass |
+| QUIC | v1、v2、draft-29 | long header、version、DCID/SCID |
+| WebSocket | RFC 6455 | upgrade handshake |
+| Minecraft | 握手协议版本 | VarInt 分帧、packet id |
+
+HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密钥调度，
+属于后续阶段。
+
+## 构建
+
+在仓库根目录执行：
+
+    cargo test --workspace
+    cargo build --release
+
+质量门禁：
+
+    cargo fmt --all -- --check
+    cargo clippy --workspace --all-targets -- -D warnings
+    cargo test --workspace
+
+## 命令行
+
+    ./target/release/nettoold proxy \
+      --listen 127.0.0.1:25565 \
+      --target 127.0.0.1:25566 \
+      --protocol auto \
+      --pcap capture.pcap
+
+    ./target/release/nettoold proxy --duration 10 ...
+
+    ./target/release/nettoold analyze capture.pcap --hex --dissect
+
+| 参数 | 默认值 | 说明 |
+| --- | --- | --- |
+| --listen | 127.0.0.1:25565 | 本地监听地址 |
+| --target | 127.0.0.1:25566 | 上游目标 |
+| --protocol | auto | auto、mc、http、tls、dns、ws、quic、raw |
+| --pcap | 无 | 写入真实 pcap |
+| --duration | 无 | N 秒后停止接收新连接 |
+| --drop-direction | 无 | 丢弃 c2s 或 s2c，仍会记录 |
+| --quiet | 关闭 | 不输出逐包日志 |
+
+示例输出：
+
+    [conn 127.0.0.1:52950] tls TLS 1.3 sni=mc.example alpn=h2,http/1.1 ciphers=1
+    #1 C->S 98B tls
+    #2 S->C 98B tls
+
+## 目录
+
+    crates/nettool-proto     VarInt、MC 分帧、协议注册表、TLS/HTTP/DNS/QUIC
+    crates/nettool-capture   pcap 读写、合成 TCP 帧
+    crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃
+    crates/nettool-control   控制类型、会话与 MAC 租约状态机
+    crates/nettoold          CLI 入口，daemon 后续加入
+    docs/PROTOCOL.md         线格式、版本与代理语义
+    docs/ARCHITECTURE.md     架构、检测流程、扩展点
+    docs/PROCESS-MODEL.md    UI / daemon / 特权 helper、崩溃隔离
+    docs/CONTROL-API.md      daemon API 消息模型
+    docs/MIGRATION.md        Python -> Rust 映射与阶段
+    docs/PLUGIN-ABI.md       DLL/dylib 插件 C ABI 设计
+    docs/AUTHORIZED-USE.md   允许与禁止的使用
+    SECURITY.md              漏洞报告与安全边界
+
+## 设计
+
+- Rust 优先；C 只用于操作系统薄垫片，不用于解析不可信输入。
+- UI 与后台分离：Qt 6 客户端 -> nettoold daemon -> 特权 helper。UI 崩溃不会
+  停止抓包或释放 MAC 租约。
+- MAC 由独立特权 helper 管理：显式租约、审计、可恢复；只有显式 release 或
+  helper shutdown 才结束。
+- 原始字节立即转发；分帧只做展示，不延迟转发。
+- 协议检测不会偷偷切换目标端口。
+- 多版本解析以元数据为先；不手写密码学。
+
+## 贡献
+
+欢迎提交 issue 和 pull request。提交前请阅读 CONTRIBUTING.md。改动必须聚焦、
+带测试，并且不得重写、删除或覆盖其他人的工作。禁止 force-push 到 main。
+
+## 安全
+
+NetTool 仅用于自有系统或获得书面授权的测试，不提供隐蔽、规避监控或未经授权
+的远程控制能力。详见 SECURITY.md 和 docs/AUTHORIZED-USE.md。
+
+## 许可证
+
+Apache-2.0。见 LICENSE。
