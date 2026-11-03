@@ -127,6 +127,7 @@ fn cmd_analyze(args: &[String]) -> CliResult {
         .find(|a| !a.starts_with('-'))
         .ok_or_else(|| invalid("usage: nettoold analyze <file.pcap> [--hex]".to_string()))?;
     let hex = has_flag(args, "--hex");
+    let dissect = has_flag(args, "--dissect");
     let file = File::open(path)?;
     let packets = read_pcap(file)?;
     println!("{} packets from {}", packets.len(), path);
@@ -144,6 +145,15 @@ fn cmd_analyze(args: &[String]) -> CliResult {
             packet.ack,
             packet.payload.len()
         );
+        if dissect && !packet.payload.is_empty() {
+            let found = nettool_proto::inspect(&packet.payload);
+            println!(
+                "  detect: {} {} {}",
+                found.protocol.as_str(),
+                found.version.as_deref().unwrap_or("-"),
+                found.detail.as_deref().unwrap_or("")
+            );
+        }
         if packet.payload.is_empty() {
             continue;
         }
@@ -183,13 +193,13 @@ fn usage() {
          \n\
          USAGE:\n\
          \x20 nettoold proxy [options]\n\
-         \x20 nettoold analyze <file.pcap> [--hex]\n\
+         \x20 nettoold analyze <file.pcap> [--hex] [--dissect]\n\
          \x20 nettoold version\n\
          \n\
          PROXY OPTIONS:\n\
          \x20 --listen <addr>          default 127.0.0.1:25565\n\
          \x20 --target <host:port>     default 127.0.0.1:25566\n\
-         \x20 --protocol <mode>        auto | mc | http | tls | raw (default auto)\n\
+         \x20 --protocol <mode>        auto | mc | http | tls | dns | ws | quic | raw\n\
          \x20 --pcap <file>            write a real pcap\n\
          \x20 --duration <seconds>     stop accepting after N seconds\n\
          \x20 --drop-direction <dir>   drop c2s or s2c (still captured)\n\

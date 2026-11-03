@@ -4,7 +4,7 @@ use std::io::{self, Read, Write};
 use std::net::Ipv4Addr;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::tcp::build_tcp_frame;
+use crate::tcp::{build_tcp_frame, TcpSegment};
 
 const PCAP_MAGIC: u32 = 0xa1b2_c3d4;
 const LINKTYPE_ETHERNET: u32 = 1;
@@ -32,20 +32,8 @@ impl<W: Write> PcapWriter<W> {
     }
 
     /// Append one TCP segment directed at the given endpoints.
-    pub fn write_tcp(
-        &mut self,
-        ts: SystemTime,
-        src_ip: Ipv4Addr,
-        dst_ip: Ipv4Addr,
-        src_port: u16,
-        dst_port: u16,
-        seq: u32,
-        ack: u32,
-        payload: &[u8],
-    ) -> io::Result<()> {
-        let frame = build_tcp_frame(
-            src_ip, dst_ip, src_port, dst_port, seq, ack, self.ident, payload,
-        );
+    pub fn write_tcp(&mut self, ts: SystemTime, segment: &TcpSegment) -> io::Result<()> {
+        let frame = build_tcp_frame(segment, self.ident);
         self.ident = self.ident.wrapping_add(1);
         self.write_record(ts, &frame)
     }
@@ -134,24 +122,34 @@ pub fn read_pcap<R: Read>(mut r: R) -> io::Result<Vec<CapturedPacket>> {
         }
         let mut frame = vec![0u8; incl_len];
         r.read_exact(&mut frame)?;
-        if let Some(p) = parse_ethernet_tcp(&frame) {
+        if let Some(parsed) = parse_ethernet_tcp(&frame) {
             out.push(CapturedPacket {
                 ts_sec,
                 ts_usec,
-                src_ip: p.0,
-                dst_ip: p.1,
-                src_port: p.2,
-                dst_port: p.3,
-                seq: p.4,
-                ack: p.5,
-                payload: p.6,
+                src_ip: parsed.src_ip,
+                dst_ip: parsed.dst_ip,
+                src_port: parsed.src_port,
+                dst_port: parsed.dst_port,
+                seq: parsed.seq,
+                ack: parsed.ack,
+                payload: parsed.payload,
             });
         }
     }
     Ok(out)
 }
 
-fn parse_ethernet_tcp(frame: &[u8]) -> Option<(Ipv4Addr, Ipv4Addr, u16, u16, u32, u32, Vec<u8>)> {
+struct ParsedTcp {
+    src_ip: Ipv4Addr,
+    dst_ip: Ipv4Addr,
+    src_port: u16,
+    dst_port: u16,
+    seq: u32,
+    ack: u32,
+    payload: Vec<u8>,
+}
+
+fn parse_ethernet_tcp(frame: &[u8]) -> Option<ParsedTcp> {
     if frame.len() < 14 {
         return None;
     }
@@ -173,24 +171,40 @@ fn parse_ethernet_tcp(frame: &[u8]) -> Option<(Ipv4Addr, Ipv4Addr, u16, u16, u32
     if data_off < 20 || tcp.len() < data_off {
         return None;
     }
-    let src_port = u16::from_be_bytes([tcp[0], tcp[1]]);
-    let dst_port = u16::from_be_bytes([tcp[2], tcp[3]]);
-    let seq = u32::from_be_bytes([tcp[4], tcp[5], tcp[6], tcp[7]]);
-    let ack = u32::from_be_bytes([tcp[8], tcp[9], tcp[10], tcp[11]]);
-    Some((
+    Some(ParsedTcp {
         src_ip,
         dst_ip,
-        src_port,
-        dst_port,
-        seq,
-        ack,
-        tcp[data_off..].to_vec(),
-    ))
+        src_port: u16::from_be_bytes([tcp[0], tcp[1]]),
+        dst_port: u16::from_be_bytes([tcp[2], tcp[3]]),
+        seq: u32::from_be_bytes([tcp[4], tcp[5], tcp[6], tcp[7]]),
+        ack: u32::from_be_bytes([tcp[8], tcp[9], tcp[10], tcp[11]]),
+        payload: tcp[data_off..].to_vec(),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn segment(
+        src: Ipv4Addr,
+        dst: Ipv4Addr,
+        sport: u16,
+        dport: u16,
+        seq: u32,
+        ack: u32,
+        payload: &[u8],
+    ) -> TcpSegment<'_> {
+        TcpSegment {
+            src_ip: src,
+            dst_ip: dst,
+            src_port: sport,
+            dst_port: dport,
+            seq,
+            ack,
+            payload,
+        }
+    }
 
     #[test]
     fn write_and_read_roundtrip() {
@@ -198,25 +212,29 @@ mod tests {
         writer
             .write_tcp(
                 SystemTime::now(),
-                Ipv4Addr::new(10, 0, 0, 1),
-                Ipv4Addr::new(10, 0, 0, 2),
-                40000,
-                25565,
-                100,
-                200,
-                b"hello",
+                &segment(
+                    Ipv4Addr::new(10, 0, 0, 1),
+                    Ipv4Addr::new(10, 0, 0, 2),
+                    40000,
+                    25565,
+                    100,
+                    200,
+                    b"hello",
+                ),
             )
             .unwrap();
         writer
             .write_tcp(
                 SystemTime::now(),
-                Ipv4Addr::new(10, 0, 0, 2),
-                Ipv4Addr::new(10, 0, 0, 1),
-                25565,
-                40000,
-                200,
-                105,
-                b"world",
+                &segment(
+                    Ipv4Addr::new(10, 0, 0, 2),
+                    Ipv4Addr::new(10, 0, 0, 1),
+                    25565,
+                    40000,
+                    200,
+                    105,
+                    b"world",
+                ),
             )
             .unwrap();
         let bytes = writer.into_inner();

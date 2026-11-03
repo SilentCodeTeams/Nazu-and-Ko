@@ -8,4 +8,4 @@ pub mod pcap;
 pub mod tcp;
 
 pub use pcap::{read_pcap, CapturedPacket, PcapWriter};
-pub use tcp::{build_tcp_frame, checksum};
+pub use tcp::{build_tcp_frame, checksum, TcpSegment};

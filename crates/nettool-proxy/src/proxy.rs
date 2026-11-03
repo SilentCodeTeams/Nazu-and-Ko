@@ -19,8 +19,8 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime};
 
-use nettool_capture::PcapWriter;
-use nettool_proto::{detect, packet_id, Frame, PacketFramer, Protocol};
+use nettool_capture::{PcapWriter, TcpSegment};
+use nettool_proto::{inspect, packet_id, Detection, Frame, PacketFramer, Protocol};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -51,6 +51,9 @@ pub enum DetectMode {
     Minecraft,
     Http,
     Tls,
+    Dns,
+    WebSocket,
+    Quic,
     Raw,
 }
 
@@ -60,20 +63,35 @@ impl DetectMode {
             "auto" => Some(DetectMode::Auto),
             "mc" | "minecraft" => Some(DetectMode::Minecraft),
             "http" => Some(DetectMode::Http),
-            "tls" | "https" => Some(DetectMode::Tls),
+            "tls" | "https" | "ssl" => Some(DetectMode::Tls),
+            "dns" => Some(DetectMode::Dns),
+            "ws" | "websocket" => Some(DetectMode::WebSocket),
+            "quic" | "http3" | "h3" => Some(DetectMode::Quic),
             "raw" | "tcp" => Some(DetectMode::Raw),
             _ => None,
         }
     }
 
-    fn resolve(self, first: &[u8]) -> Protocol {
+    fn resolve(self, first: &[u8]) -> Detection {
         match self {
-            DetectMode::Auto => detect(first),
-            DetectMode::Minecraft => Protocol::Minecraft,
-            DetectMode::Http => Protocol::Http,
-            DetectMode::Tls => Protocol::Tls,
-            DetectMode::Raw => Protocol::Unknown,
+            DetectMode::Auto => inspect(first),
+            DetectMode::Minecraft => forced(Protocol::Minecraft, "minecraft"),
+            DetectMode::Http => forced(Protocol::Http, "HTTP"),
+            DetectMode::Tls => forced(Protocol::Tls, "TLS"),
+            DetectMode::Dns => forced(Protocol::Dns, "DNS"),
+            DetectMode::WebSocket => forced(Protocol::WebSocket, "RFC 6455"),
+            DetectMode::Quic => forced(Protocol::Quic, "QUIC"),
+            DetectMode::Raw => Detection::unknown(),
         }
+    }
+}
+
+fn forced(protocol: Protocol, label: &str) -> Detection {
+    Detection {
+        protocol,
+        version: Some(label.to_string()),
+        detail: Some("forced".to_string()),
+        confidence: 100,
     }
 }
 
@@ -209,7 +227,17 @@ fn handle_connection(
         return Ok(());
     }
     first.truncate(n);
-    let protocol = config.protocol.resolve(&first);
+    let detection = config.protocol.resolve(&first);
+    let protocol = detection.protocol;
+    if !config.quiet && protocol != Protocol::Unknown {
+        eprintln!(
+            "[conn {}] {} {} {}",
+            client_addr,
+            protocol.as_str(),
+            detection.version.as_deref().unwrap_or("-"),
+            detection.detail.as_deref().unwrap_or("")
+        );
+    }
 
     let target_addr = (config.target_host.as_str(), config.target_port)
         .to_socket_addrs()?
@@ -229,7 +257,7 @@ fn handle_connection(
     let s2c_running = conn_running.clone();
     let s2c_sink = sink.clone();
     let s2c = thread::spawn(move || {
-        let _ = relay(
+        relay(
             server_read,
             client_write,
             Direction::ServerToClient,
@@ -242,7 +270,7 @@ fn handle_connection(
     });
 
     let c2s_running = conn_running.clone();
-    let _ = relay(
+    relay(
         client_read,
         server_write,
         Direction::ClientToServer,
@@ -359,16 +387,16 @@ impl Sink {
 
         if let (IpAddr::V4(src_ip), IpAddr::V4(dst_ip)) = (src.ip(), dst.ip()) {
             if let Some(pcap) = &mut self.pcap {
-                pcap.write_tcp(
-                    SystemTime::now(),
+                let segment = TcpSegment {
                     src_ip,
                     dst_ip,
-                    src.port(),
-                    dst.port(),
+                    src_port: src.port(),
+                    dst_port: dst.port(),
                     seq,
                     ack,
-                    data,
-                )?;
+                    payload: data,
+                };
+                pcap.write_tcp(SystemTime::now(), &segment)?;
             }
         }
 
