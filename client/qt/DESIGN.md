@@ -80,5 +80,5 @@ packet rows, Repeater, Rules, Intruder and Scanner dialogs, PacketEditor
 Raw/Hex/JSON/HTTP tabs, toast notifications, smart CSV/JSON/TSV export, and
 rules passed to nettoold proxy.
 
-Still to port: deeper legacy tool-option parity and notification animation. These
-remain functional gaps, not "porting in progress" message boxes.
+Still to port: deeper legacy tool-option parity and richer web dashboard history.
+These remain functional gaps, not "porting in progress" message boxes.

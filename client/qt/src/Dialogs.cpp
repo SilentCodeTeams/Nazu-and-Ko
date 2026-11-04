@@ -194,6 +194,15 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     const QString position = settings.value(QStringLiteral("notification/position"), QStringLiteral("auto")).toString();
     notificationPosition_->setCurrentIndex(qMax(0, notificationPosition_->findData(position)));
     notificationForm->addRow(translate("dialog.settings.notificationPosition"), notificationPosition_);
+
+    notificationAnimation_ = new QComboBox(notifications);
+    notificationAnimation_->addItem(translate("notification.animation.fade"), QStringLiteral("fade"));
+    notificationAnimation_->addItem(translate("notification.animation.slide"), QStringLiteral("slide"));
+    notificationAnimation_->addItem(translate("notification.animation.pop"), QStringLiteral("pop"));
+    notificationAnimation_->addItem(translate("notification.animation.bounce"), QStringLiteral("bounce"));
+    const QString animation = settings.value(QStringLiteral("notification/animation"), QStringLiteral("fade")).toString();
+    notificationAnimation_->setCurrentIndex(qMax(0, notificationAnimation_->findData(animation)));
+    notificationForm->addRow(translate("dialog.settings.notificationAnimation"), notificationAnimation_);
     tabs->addTab(notifications, translate("dialog.settings.notifications"));
 
     auto *proxy = new QWidget(tabs);
@@ -257,6 +266,8 @@ void SettingsDialog::saveSettings() {
     settings.setValue(QStringLiteral("notification/duration"), notificationDuration_->value());
     settings.setValue(QStringLiteral("notification/position"),
                       notificationPosition_->currentData().toString());
+    settings.setValue(QStringLiteral("notification/animation"),
+                      notificationAnimation_->currentData().toString());
     settings.setValue(QStringLiteral("proxy/listenPort"), listenPort_->value());
     settings.setValue(QStringLiteral("proxy/targetHost"), targetHost_->text().trimmed());
     settings.setValue(QStringLiteral("proxy/targetPort"), targetPort_->value());

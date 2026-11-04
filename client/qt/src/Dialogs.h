@@ -61,6 +61,7 @@ private:
     QCheckBox *notificationEnabled_ = nullptr;
     QSpinBox *notificationDuration_ = nullptr;
     QComboBox *notificationPosition_ = nullptr;
+    QComboBox *notificationAnimation_ = nullptr;
     QSpinBox *listenPort_ = nullptr;
     QLineEdit *targetHost_ = nullptr;
     QSpinBox *targetPort_ = nullptr;

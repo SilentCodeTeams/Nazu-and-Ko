@@ -2,6 +2,7 @@
 
 #include <algorithm>
 
+#include <QEasingCurve>
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
@@ -16,6 +17,10 @@
 NotificationCenter::NotificationCenter(QObject *parent) : QObject(parent) {}
 
 void NotificationCenter::show(const QString &message, Level level) {
+    QSettings settings;
+    if (!settings.value(QStringLiteral("notification/enabled"), true).toBool()) {
+        return;
+    }
     if (active_.size() >= 4) {
         active_.first()->close();
     }
@@ -45,24 +50,50 @@ void NotificationCenter::show(const QString &message, Level level) {
     layout->addWidget(label);
 
     auto *effect = new QGraphicsOpacityEffect(toast);
+    effect->setOpacity(0.0);
     toast->setGraphicsEffect(effect);
-    auto *animation = new QPropertyAnimation(effect, "opacity", toast);
-    animation->setDuration(180);
-    animation->setStartValue(0.0);
-    animation->setEndValue(1.0);
-    animation->start(QAbstractAnimation::DeleteWhenStopped);
 
     active_.append(toast);
     toast->adjustSize();
     reposition();
+
+    const QString animation = settings.value(QStringLiteral("notification/animation"),
+                                              QStringLiteral("fade")).toString();
+    const QPoint finalPosition = toast->pos();
+    QPoint startPosition = finalPosition;
+    if (animation == QStringLiteral("slide") || animation == QStringLiteral("bounce")) {
+        startPosition += QPoint(24, 0);
+    } else if (animation == QStringLiteral("pop")) {
+        startPosition += QPoint(0, 8);
+    }
+    toast->move(startPosition);
     toast->show();
     toast->raise();
+
+    auto *fade = new QPropertyAnimation(effect, "opacity", toast);
+    fade->setDuration(180);
+    fade->setStartValue(0.0);
+    fade->setEndValue(1.0);
+    fade->setEasingCurve(animation == QStringLiteral("bounce") ? QEasingCurve::OutBounce
+                                                               : QEasingCurve::OutCubic);
+    fade->start(QAbstractAnimation::DeleteWhenStopped);
+
+    if (startPosition != finalPosition) {
+        auto *move = new QPropertyAnimation(toast, "pos", toast);
+        move->setDuration(animation == QStringLiteral("bounce") ? 420 : 220);
+        move->setStartValue(startPosition);
+        move->setEndValue(finalPosition);
+        move->setEasingCurve(animation == QStringLiteral("bounce") ? QEasingCurve::OutBounce
+                                                                   : QEasingCurve::OutCubic);
+        move->start(QAbstractAnimation::DeleteWhenStopped);
+    }
 
     connect(toast, &QObject::destroyed, this, [this, toast] {
         active_.removeAll(toast);
         reposition();
     });
-    QTimer::singleShot(3200, toast, &QWidget::close);
+    const int duration = settings.value(QStringLiteral("notification/duration"), 3000).toInt();
+    QTimer::singleShot(qBound(500, duration, 15000), toast, &QWidget::close);
 }
 
 void NotificationCenter::reposition() {

@@ -21,9 +21,9 @@ and UI clients.
   rule wiring and a loopback web dashboard.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
 - 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: deeper legacy tool-option parity, notification animation, daemon
-  proxy-session commands, privileged MAC helper, TLS MITM, HTTP/2 HPACK,
-  HTTP/3 over QUIC, Minecraft compression and login state, plugin runtime.
+- Not yet: deeper legacy tool-option parity, daemon proxy-session commands,
+  privileged MAC helper, TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC,
+  Minecraft compression and login state, plugin runtime.
 
 ## Protocol support
 

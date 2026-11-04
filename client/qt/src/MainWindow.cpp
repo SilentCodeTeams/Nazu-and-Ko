@@ -51,6 +51,7 @@
 #include <QTableWidgetItem>
 #include <QTextStream>
 #include <QTime>
+#include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QWheelEvent>
@@ -194,6 +195,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setTheme(theme_);
     configureWebDashboard();
     updateWebDashboard();
+
+    if (QSettings().value(QStringLiteral("proxy/autoStart"), false).toBool()) {
+        QTimer::singleShot(500, this, &MainWindow::startProxy);
+    }
 }
 
 QString MainWindow::t(const QString &key) const {

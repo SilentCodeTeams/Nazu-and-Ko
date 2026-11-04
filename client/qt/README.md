@@ -37,7 +37,8 @@ Implemented:
 - Repeater redirect/timeout options
 - Intruder and Scanner concurrency, delay and stop controls
 - Intruder raw HTTP-template mode with a §payload§ marker
-- Notification placement setting, honoured by the toast centre
+- Notification enable/duration/placement/animation settings, honoured by the toast centre
+- Proxy auto-start setting
 - PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
 - Loopback web dashboard at / and /api/status
 - Toast notification centre
@@ -46,7 +47,7 @@ Implemented:
 
 Known gaps from full legacy parity:
 
-- Deeper legacy option parity and notification animation
+- Deeper legacy option parity and richer web dashboard history
 - Additional translations beyond Chinese and English
 
 The tool dialogs are functional Qt ports, not placeholder message boxes. They do

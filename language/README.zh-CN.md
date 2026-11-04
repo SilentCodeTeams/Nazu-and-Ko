@@ -18,9 +18,8 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
   PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出、代理规则接入和本地 Web 仪表盘。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
 - 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
-- 尚未完成：更深的工具选项对齐、通知动画、daemon proxy session 命令、
-  特权 MAC helper、TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、
-  插件运行时。
+- 尚未完成：更深的工具选项对齐、daemon proxy session 命令、特权 MAC helper、
+  TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
 
 ## 协议支持
 
