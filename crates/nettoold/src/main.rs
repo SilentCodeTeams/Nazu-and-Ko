@@ -5,9 +5,13 @@
 //!                  [--pcap out.pcap] [--duration 10] [--quiet]
 //!                  [--drop-direction c2s|s2c]
 //!
+//!   nettoold serve [--bind 127.0.0.1:0] [--state <file>]
+//!
 //!   nettoold analyze out.pcap [--hex]
 //!
 //!   nettoold version
+
+mod daemon;
 
 use std::env;
 use std::error::Error;
@@ -29,6 +33,7 @@ fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
     let result = match args.first().map(String::as_str) {
         Some("proxy") => cmd_proxy(&args[1..]),
+        Some("serve") => cmd_serve(&args[1..]),
         Some("analyze") => cmd_analyze(&args[1..]),
         Some("version") | Some("--version") | Some("-V") => {
             println!("nettoold {}", env!("CARGO_PKG_VERSION"));
@@ -150,6 +155,22 @@ fn cmd_proxy(args: &[String]) -> CliResult {
     Ok(())
 }
 
+fn cmd_serve(args: &[String]) -> CliResult {
+    let bind: SocketAddr = take_flag(args, "--bind")
+        .unwrap_or_else(|| "127.0.0.1:0".to_string())
+        .parse()
+        .map_err(|_| invalid("bad --bind address".to_string()))?;
+    let state_path = take_flag(args, "--state")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| env::temp_dir().join(format!("nettoold-{}.state", std::process::id())));
+    let daemon = daemon::Daemon::bind(bind, state_path.clone())?;
+    println!("nettoold control server");
+    println!("  bind: {}", daemon.local_addr()?);
+    println!("  state: {}", state_path.display());
+    daemon.run()?;
+    Ok(())
+}
+
 fn cmd_analyze(args: &[String]) -> CliResult {
     let path = args
         .iter()
@@ -222,6 +243,7 @@ fn usage() {
          \n\
          USAGE:\n\
          \x20 nettoold proxy [options]\n\
+         \x20 nettoold serve [--bind 127.0.0.1:0] [--state <file>]\n\
          \x20 nettoold analyze <file.pcap> [--hex] [--dissect]\n\
          \x20 nettoold version\n\
          \n\

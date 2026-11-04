@@ -12,6 +12,11 @@ Phase 2 starts with loopback TCP and a bearer token:
     JSON lines in both directions
     one persistent event subscription per client
 
+The state file is line-oriented:
+
+    port=53421
+    token=0123456789abcdef0123456789abcdef
+
 Later phases can add a Unix domain socket / Windows named pipe without changing
 the message model.
 
@@ -33,6 +38,18 @@ the message model.
     list_leases
     shutdown       daemon (helper keeps leases unless explicitly released)
     shutdown_helper release all leases and stop the helper
+
+The first Phase 2 server slice implements:
+
+- list_sessions (returns an empty list until proxy sessions are wired)
+- acquire_mac with dry_run=true only
+- release_mac
+- list_leases
+- shutdown
+
+start_proxy, stop_proxy, subscribe and shutdown_helper are parsed by the
+protocol but return "not implemented" until the next slice. acquire_mac without
+dry_run also returns an error because the privileged helper is not present.
 
 ## Events
 

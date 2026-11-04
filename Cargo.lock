@@ -38,6 +38,7 @@ name = "nettoold"
 version = "0.1.0"
 dependencies = [
  "nettool-capture",
+ "nettool-control",
  "nettool-proto",
  "nettool-proxy",
 ]

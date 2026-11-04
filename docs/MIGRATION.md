@@ -47,7 +47,8 @@ Phase 1 (done)
 Phase 2 (in progress)
 
 - rule engine with packet predicates (done)
-- daemon API over a local authenticated transport (control types first)
+- daemon control transport, auth and dry-run MAC leases (MVP done)
+- daemon proxy-session commands and persistent event subscriptions
 - framed forwarding
 - MC compression and login state
 - HTTP/2 frames

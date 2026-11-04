@@ -13,3 +13,4 @@ path = "src/main.rs"
 nettool-proto = { path = "../nettool-proto" }
 nettool-capture = { path = "../nettool-capture" }
 nettool-proxy = { path = "../nettool-proxy" }
+nettool-control = { path = "../nettool-control" }

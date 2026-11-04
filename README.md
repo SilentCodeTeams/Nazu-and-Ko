@@ -13,11 +13,13 @@ and UI clients.
   real pcap capture, PacketEvent/EventSink, control types.
 - Phase 2 packet rules: drop/allow by direction, protocol, ports, length and
   payload bytes, evaluated per captured chunk.
+- Phase 2 daemon control server MVP: loopback TCP, 0600 token state file,
+  JSON-lines authentication and dry-run MAC leases.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
-- 52 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: daemon API and Qt client, privileged MAC helper, TLS MITM,
-  HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login state,
-  plugin runtime.
+- 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
+- Not yet: daemon proxy-session commands and Qt client, privileged MAC helper,
+  TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login
+  state, plugin runtime.
 
 ## Protocol support
 
@@ -59,6 +61,8 @@ Quality gates:
     ./target/release/nettoold proxy \
       --rule 'drop dir=c2s proto=mc contains=hello' ...
 
+    ./target/release/nettoold serve --state nettoold.state
+
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
 | Option | Default | Description |
@@ -83,6 +87,16 @@ later drop.
 
 See docs/RULES.md for syntax, event reporting and safety.
 
+### Control server
+
+    ./target/release/nettoold serve --state nettoold.state
+
+Loopback only. The daemon writes port and token to a 0600 state file and speaks
+JSON lines. The MVP implements list_sessions (empty), acquire_mac dry-run,
+release_mac, list_leases and shutdown. Proxy-session commands are next.
+
+See docs/CONTROL-API.md for the message model.
+
 Example output:
 
     [conn 127.0.0.1:52950] tls TLS 1.3 sni=mc.example alpn=h2,http/1.1 ciphers=1
@@ -96,7 +110,7 @@ Example output:
     crates/nettool-capture   pcap writer/reader, synthetic TCP frames
     crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops, rules
     crates/nettool-control   control types, session and MAC lease state machine
-    crates/nettoold          CLI entry point, daemon next
+    crates/nettoold          CLI and local control server
     docs/PROTOCOL.md         wire formats, versions and proxy semantics
     docs/RULES.md            packet rule syntax, semantics and safety
     docs/ARCHITECTURE.md     crate graph, detection flow, extension points

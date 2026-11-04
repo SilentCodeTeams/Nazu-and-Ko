@@ -110,9 +110,9 @@ Phase 0: MC framing, relay, real pcap, CLI.
 Phase 1 (done): protocol registry, TLS/HTTP/DNS/QUIC detection, EventSink,
 control types, docs, CI.
 
-Phase 2 (in progress): rule engine with packet predicates done; daemon API and
-control server, MC compression and login state, HTTP/2 frames, framed forwarding
-next.
+Phase 2 (in progress): rule engine with packet predicates and the daemon control
+transport/auth/MAC-lease MVP are done; daemon proxy sessions, MC compression and
+login state, HTTP/2 frames and framed forwarding are next.
 
 Phase 3: capture backends (BPF, AF_PACKET, Npcap/WinDivert), kernel QoS,
 nettool-macd privileged helper, plugin host with C ABI and signed manifests.

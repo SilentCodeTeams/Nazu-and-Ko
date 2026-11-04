@@ -11,10 +11,12 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
   EventSink、控制类型。
 - Phase 2 规则引擎完成：按方向、协议、端口、长度和载荷字节 drop/allow，
   按捕获块求值。
+- Phase 2 daemon 控制服务器 MVP：loopback TCP、0600 token state file、
+  JSON lines 鉴权、dry-run MAC 租约。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
-- 52 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
-- 尚未完成：daemon API 与 Qt 客户端、特权 MAC helper、TLS MITM、
-  HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
+- 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
+- 尚未完成：daemon proxy session 命令与 Qt 客户端、特权 MAC helper、
+  TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
 
 ## 协议支持
 
@@ -56,6 +58,8 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
     ./target/release/nettoold proxy \
       --rule 'drop dir=c2s proto=mc contains=hello' ...
 
+    ./target/release/nettoold serve --state nettoold.state
+
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
 | 参数 | 默认值 | 说明 |
@@ -79,6 +83,16 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
 
 语法、事件字段和安全边界见 docs/RULES.md。
 
+### 控制服务器
+
+    ./target/release/nettoold serve --state nettoold.state
+
+仅监听 loopback。daemon 把 port 与 token 写入 0600 state file，使用 JSON lines
+通信。MVP 已实现 list_sessions（空）、acquire_mac dry-run、release_mac、
+list_leases 和 shutdown；proxy session 命令下一步接入。
+
+消息模型见 docs/CONTROL-API.md。
+
 示例输出：
 
     [conn 127.0.0.1:52950] tls TLS 1.3 sni=mc.example alpn=h2,http/1.1 ciphers=1
@@ -92,7 +106,7 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
     crates/nettool-capture   pcap 读写、合成 TCP 帧
     crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃、规则判定
     crates/nettool-control   控制类型、会话与 MAC 租约状态机
-    crates/nettoold          CLI 入口，daemon 后续加入
+    crates/nettoold          CLI 与本地控制服务器
     docs/PROTOCOL.md         线格式、版本与代理语义
     docs/RULES.md            规则语法、语义与安全边界
     docs/ARCHITECTURE.md     架构、检测流程、扩展点

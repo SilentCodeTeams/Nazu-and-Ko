@@ -7,6 +7,9 @@
 //! The UI never links the proxy or capture crates. It talks to the daemon,
 //! and the daemon talks to the privileged helper. See docs/PROCESS-MODEL.md.
 
+pub mod json;
+pub mod protocol;
+
 pub const API_VERSION: u32 = 1;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
