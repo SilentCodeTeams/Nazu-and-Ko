@@ -1,65 +1,62 @@
-# Nazu&Ko
+# Nazu&Ko（简体中文）
 
 > We don't sleep because packets never do.
 
-English | [简体中文](language/README.zh-CN.md)
+[English](language/README.en.md) | 简体中文
 
-Nazu&Ko is the Rust core for network protocol analysis and authorized security
-testing. It succeeds the Python prototype with a dependency-free, cross-platform
-implementation and a clean process boundary between the backend and UI clients.
+Nazu&Ko 是用于网络协议分析与授权安全测试的 Rust 核心。它接替 Python 原型，
+做到零外部依赖、跨平台，并且把后台与 UI 客户端拆成独立进程。
 
-## Status
+## 状态
 
-- Phase 1 foundation is complete: protocol registry, transparent TCP proxy,
-  real pcap capture, PacketEvent/EventSink, control types.
-- Phase 2 packet rules: drop/allow by direction, protocol, ports, length and
-  payload bytes, evaluated per captured chunk.
-- Phase 2 daemon control server MVP: loopback TCP, 0600 token state file,
-  JSON-lines authentication and dry-run MAC leases.
-- Qt 6 Widgets client: redesigned dashboard, key=value i18n (zh-CN/en), live
-  `nettoold proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
-  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export and proxy
-  rule wiring.
-- Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
-- 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: deeper legacy tool-option parity, daemon proxy-session commands,
-  privileged MAC helper, TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC,
-  Minecraft compression and login state, plugin runtime.
+- Phase 1 地基完成：协议注册表、透明 TCP 代理、真实 pcap、PacketEvent/
+  EventSink、控制类型。
+- Phase 2 规则引擎完成：按方向、协议、端口、长度和载荷字节 drop/allow，
+  按捕获块求值。
+- Phase 2 daemon 控制服务器 MVP：loopback TCP、0600 token state file、
+  JSON lines 鉴权、dry-run MAC 租约。
+- Qt 6 Widgets 客户端：重做 dashboard、key=value 国际化（zh-CN/en）、
+  真实 nettoold proxy 输出与数据包行、Repeater/规则/Intruder/Scanner、
+  PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出和代理规则接入。
+- 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
+- 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
+- 尚未完成：更深的工具选项对齐、daemon proxy session 命令、特权 MAC helper、
+  TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
 
-## Protocol support
+## 协议支持
 
-| Protocol | Versions detected | Parsed |
+| 协议 | 可检测版本 | 已解析 |
 | --- | --- | --- |
-| TLS/SSL | SSL 3.0, TLS 1.0, 1.1, 1.2, 1.3 | record, ClientHello/ServerHello, SNI, ALPN, cipher suites |
-| HTTP | 0.9, 1.0, 1.1, 2 (preface) | start line, headers, WebSocket upgrade |
-| DNS | standard query | question name, qtype, qclass |
-| QUIC | v1, v2, draft-29 | long header, version, DCID/SCID |
+| TLS/SSL | SSL 3.0、TLS 1.0、1.1、1.2、1.3 | record、ClientHello/ServerHello、SNI、ALPN、cipher suites |
+| HTTP | 0.9、1.0、1.1、2（preface） | 请求/响应行、头部、WebSocket Upgrade |
+| DNS | 标准查询 | question name、qtype、qclass |
+| QUIC | v1、v2、draft-29 | long header、version、DCID/SCID |
 | WebSocket | RFC 6455 | upgrade handshake |
-| Minecraft | handshake protocol version | VarInt framing, packet id |
+| Minecraft | 握手协议版本 | VarInt 分帧、packet id |
 
-HTTP/3 is detected only as QUIC. Full HTTP/3 needs a QUIC stack and the TLS 1.3
-key schedule; that is a later phase.
+HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密钥调度，
+属于后续阶段。
 
-## Build
+## 构建
 
-From the repository root:
+在仓库根目录执行：
 
     cargo test --workspace
     cargo build --release
 
-Qt client:
+Qt 客户端：
 
     cmake -S client/qt -B build/qt \
       -DCMAKE_PREFIX_PATH=/Users/apple/Qt/6.11.2/macos
     cmake --build build/qt -j 4
 
-Quality gates:
+质量门禁：
 
     cargo fmt --all -- --check
     cargo clippy --workspace --all-targets -- -D warnings
     cargo test --workspace
 
-## CLI
+## 命令行
 
     ./target/release/nettoold proxy \
       --listen 127.0.0.1:25565 \
@@ -76,99 +73,96 @@ Quality gates:
 
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
-| Option | Default | Description |
+| 参数 | 默认值 | 说明 |
 | --- | --- | --- |
-| --listen | 127.0.0.1:25565 | Local listen address |
-| --target | 127.0.0.1:25566 | Upstream target |
-| --protocol | auto | auto, mc, http, tls, dns, ws, quic, raw |
-| --pcap | none | Write a real pcap |
-| --duration | none | Stop accepting after N seconds |
-| --drop-direction | none | Drop c2s or s2c; still captured |
-| --rule | none | Repeatable drop/allow predicate; see docs/RULES.md |
-| --quiet | off | Suppress per-packet output |
+| --listen | 127.0.0.1:25565 | 本地监听地址 |
+| --target | 127.0.0.1:25566 | 上游目标 |
+| --protocol | auto | auto、mc、http、tls、dns、ws、quic、raw |
+| --pcap | 无 | 写入真实 pcap |
+| --duration | 无 | N 秒后停止接收新连接 |
+| --drop-direction | 无 | 丢弃 c2s 或 s2c，仍会记录 |
+| --rule | 无 | 可重复的 drop/allow 谓词；见 docs/RULES.md |
+| --quiet | 关闭 | 不输出逐包日志 |
 
-### Packet rules
+### 规则
 
-Rules are evaluated per captured chunk; the first match wins and no match
-allows. Use --rule repeatedly. An earlier allow can whitelist traffic before a
-later drop.
+规则按捕获块求值；第一条匹配的规则生效，没有匹配则放行。可重复使用
+--rule，前面的 allow 可用于在后面的 drop 之前放行指定流量。
 
     --rule 'drop proto=http prefix=GET'
     --rule 'drop dir=s2c min_len=4096'
 
-See docs/RULES.md for syntax, event reporting and safety.
+语法、事件字段和安全边界见 docs/RULES.md。
 
-### Control server
+### 控制服务器
 
     ./target/release/nettoold serve --state nettoold.state
 
-Loopback only. The daemon writes port and token to a 0600 state file and speaks
-JSON lines. The MVP implements list_sessions (empty), acquire_mac dry-run,
-release_mac, list_leases and shutdown. Proxy-session commands are next.
+仅监听 loopback。daemon 把 port 与 token 写入 0600 state file，使用 JSON lines
+通信。MVP 已实现 list_sessions（空）、acquire_mac dry-run、release_mac、
+list_leases 和 shutdown；proxy session 命令下一步接入。
 
-See docs/CONTROL-API.md for the message model.
+消息模型见 docs/CONTROL-API.md。
 
-Example output:
+示例输出：
 
     [conn 127.0.0.1:52950] tls TLS 1.3 sni=mc.example alpn=h2,http/1.1 ciphers=1
     #1 C->S 98B tls
     #2 S->C 98B tls
 
-## Layout
+## 目录
 
-    crates/nettool-proto     VarInt, MC framing, registry, TLS/HTTP/DNS/QUIC
-    crates/nettool-rules     packet predicates and ordered rule set
-    crates/nettool-capture   pcap writer/reader, synthetic TCP frames
-    crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops, rules
-    crates/nettool-control   control types, session and MAC lease state machine
-    crates/nettoold          CLI and local control server
-    client/qt                Qt 6 Widgets client (main window port)
-    docs/PROTOCOL.md         wire formats, versions and proxy semantics
-    docs/RULES.md            packet rule syntax, semantics and safety
-    docs/ARCHITECTURE.md     crate graph, detection flow, extension points
-    docs/PROCESS-MODEL.md    UI / daemon / privileged helper, crash isolation
-    docs/CONTROL-API.md      daemon API message model
-    docs/MIGRATION.md        Python -> Rust mapping and phases
-    docs/ROADMAP.md          Product phases and platform boundaries
-    docs/PLUGIN-ABI.md       C ABI design for DLL/dylib plugins
-    docs/AUTHORIZED-USE.md   allowed and prohibited use
-    SECURITY.md              vulnerability reporting and safety boundary
+    crates/nettool-proto     VarInt、MC 分帧、协议注册表、TLS/HTTP/DNS/QUIC
+    crates/nettool-rules     分组谓词与有序规则集
+    crates/nettool-capture   pcap 读写、合成 TCP 帧
+    crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃、规则判定
+    crates/nettool-control   控制类型、会话与 MAC 租约状态机
+    crates/nettoold          CLI 与本地控制服务器
+    client/qt                Qt 6 Widgets 客户端（主窗口移植）
+    docs/PROTOCOL.md         线格式、版本与代理语义
+    docs/RULES.md            规则语法、语义与安全边界
+    docs/ARCHITECTURE.md     架构、检测流程、扩展点
+    docs/PROCESS-MODEL.md    UI / daemon / 特权 helper、崩溃隔离
+    docs/CONTROL-API.md      daemon API 消息模型
+    docs/MIGRATION.md        Python -> Rust 映射与阶段
+    docs/ROADMAP.md          产品阶段与平台边界
+    docs/PLUGIN-ABI.md       DLL/dylib 插件 C ABI 设计
+    docs/AUTHORIZED-USE.md   允许与禁止的使用
+    SECURITY.md              漏洞报告与安全边界
 
-## Design
+## 设计
 
-- Rust-first. C is reserved for OS shims, not for parsing untrusted bytes.
-- UI and backend are separate processes: Qt 6 client -> nettoold daemon ->
-  privileged helper. A UI crash does not stop capture or MAC leases.
-- MAC identity is owned by a privileged helper with explicit leases, audit and
-  restore. Leases end only on explicit release or helper shutdown.
-- Raw bytes are forwarded immediately; framing never delays traffic.
-- Protocol detection never silently changes the target port.
-- Multi-version parsing is metadata-first. No hand-written cryptography.
+- Rust 优先；C 只用于操作系统薄垫片，不用于解析不可信输入。
+- UI 与后台分离：Qt 6 客户端 -> nettoold daemon -> 特权 helper。UI 崩溃不会
+  停止抓包或释放 MAC 租约。
+- MAC 由独立特权 helper 管理：显式租约、审计、可恢复；只有显式 release 或
+  helper shutdown 才结束。
+- 原始字节立即转发；分帧只做展示，不延迟转发。
+- 协议检测不会偷偷切换目标端口。
+- 多版本解析以元数据为先；不手写密码学。
 
-## Contributing
+## 贡献
 
-Issues and pull requests are welcome. Read CONTRIBUTING.md before opening a PR.
-Contributions must be focused and tested, and must not rewrite, delete or
-overwrite another contributor's work. Never force-push to main.
+欢迎提交 issue 和 pull request。提交前请阅读 CONTRIBUTING.md。改动必须聚焦、
+带测试，并且不得重写、删除或覆盖其他人的工作。禁止 force-push 到 main。
 
-## Security
+## 安全
 
-Nazu&Ko is for systems you own or are explicitly authorized to test. It does
-not ship stealth, evasion or unauthorized remote-control features. See
-SECURITY.md and docs/AUTHORIZED-USE.md.
+Nazu&Ko 仅用于自有系统或获得书面授权的测试，不提供隐蔽、规避监控或未经授权
+的远程控制能力。详见 SECURITY.md 和 docs/AUTHORIZED-USE.md。
 
-## License
+## 许可证
 
-AGPL-3.0-or-later. See LICENSE and NOTICE.
+AGPL-3.0-or-later。见 LICENSE 与 NOTICE。
 
 ---
 
-本项目由 SilentStudio 监管与负责。
-本项目由 SilentStudio 对法律、版权事宜及相关咨询承担责任。
-版权所有 © SilentStudio。
+本项目由 SilentCodeTeams 监管与负责。
+本项目由 SilentCodeTeams 对法律、版权事宜及相关咨询承担责任。
+版权所有 © SilentCodeTeams。
 以 AGPL-3.0-or-later 授权。
 
-This project is supervised and administered by SilentStudio.
-This project is covered by SilentStudio, which assumes responsibility for legal and copyright matters and related inquiries.
-Copyright © SilentStudio.
+This project is supervised and administered by SilentCodeTeams.
+This project is covered by SilentCodeTeams, which assumes responsibility for legal and copyright matters and related inquiries.
+Copyright © SilentCodeTeams.
 Licensed under AGPL-3.0-or-later.

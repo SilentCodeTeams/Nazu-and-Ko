@@ -2,7 +2,7 @@
 
 > We don't sleep because packets never do.
 
-[English](../README.md) | 简体中文
+[English](README.en.md) | 简体中文
 
 Nazu&Ko 是用于网络协议分析与授权安全测试的 Rust 核心。它接替 Python 原型，
 做到零外部依赖、跨平台，并且把后台与 UI 客户端拆成独立进程。
