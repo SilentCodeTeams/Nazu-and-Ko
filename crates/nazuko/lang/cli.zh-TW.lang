@@ -1,0 +1,37 @@
+# 本文件由 SilentStudio 监管与负责。
+# 本文件属于 SilentCodeTeams 产品 Nazu&Ko 的源码部分
+# 本项目由 SilentCodeTeams 对法律、版权事宜及相关咨询承担责任。
+# 版权所有 © SilentStudio。
+# 以 AGPL-3.0-or-later 授权。
+# This document is supervised and responsible by SilentStudio.
+# This file is part of the source code of the SilentCodeTeams product Nazu&Ko
+# SilentCodeTeams is responsible for legal and copyright issues and related consultation in this project.
+# Copyright © SilentStudio.
+# Licensed as AGPL-3.0-or-later.
+
+cli.error.prefix=錯誤：
+cli.error.unknownCommand=未知指令：{command}
+cli.error.listen={flag}：需要 IP:連接埠，收到「{value}」；範例：{flag} 127.0.0.1:25565
+cli.error.hostPort={flag}：需要 主機:連接埠，收到「{value}」；範例：{flag} 127.0.0.1:25566
+cli.error.hostEmpty={flag}：主機不能為空，收到「{value}」
+cli.error.port={flag}：連接埠必須在 0-65535 之間，收到「{value}」；範例：{flag} 127.0.0.1:25566
+cli.error.bind={flag}：需要 IP:連接埠，收到「{value}」；範例：--bind 127.0.0.1:0
+cli.error.protocol=--protocol：需要 auto|mc|http|tls|dns|ws|quic|raw，收到「{value}」
+cli.error.dropDirection=--drop-direction：需要 c2s|s2c，收到「{value}」
+cli.error.duration=--duration：需要非負整數秒，收到「{value}」
+cli.error.ruleMissing=--rule 需要一個值
+cli.error.rule=--rule 無效：{error}；範例：--rule 'drop dir=c2s proto=http prefix=GET'
+cli.error.proxyBind=proxy：無法綁定 {address}：{error}；--listen 必須是本機擁有的 IP（可試 127.0.0.1:<連接埠> 或 0.0.0.0:<連接埠>）；低於 1024 的連接埠通常需要特權
+cli.error.serveBind=serve：無法綁定 {address}：{error}
+cli.error.analyzeUsage=用法：nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]
+cli.error.analyzeOpen=analyze：無法開啟「{path}」：{error}
+cli.error.analyzeParse=analyze：無法解析「{path}」：{error}
+cli.proxy.title=nazuko proxy
+cli.proxy.listen=  監聽：{value}
+cli.proxy.target=  目標：{value}
+cli.proxy.rules=  規則：{value}
+cli.proxy.bound=  已綁定：{value}
+cli.serve.title=nazuko 控制伺服器
+cli.serve.bind=  綁定：{value}
+cli.serve.state=  狀態檔：{value}
+cli.help=nazuko {version}\n\n用法：\n  nazuko proxy [選項]\n  nazuko serve [--bind <ip:port>] [--state <檔案>]\n  nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]\n  nazuko mcp\n  nazuko version [--json]\n\n語言：\n  --lang <zh-CN|zh-TW|en>       介面語言\n  --lang-file <檔案>            自訂語言檔案（最高優先）\n\nPROXY 選項：\n  --listen <ip:port>            預設 127.0.0.1:25565\n  --target <host:port>          預設 127.0.0.1:25566\n  --protocol <mode>             auto | mc | http | tls | dns | ws | quic | raw\n  --pcap <檔案>                 寫入真實 pcap\n  --duration <秒>               接收 N 秒後停止\n  --drop-direction <dir>        丟棄 c2s 或 s2c（仍會擷取）\n  --rule <表示式>               可重複的 drop/allow 規則\n  --quiet                       關閉主控台逐包輸出\n  --json                        輸出逐行 JSON 封包事件\n\n規則範例：\n  --rule 'drop dir=c2s proto=mc contains=hello'\n  --rule 'drop proto=http prefix=GET'\n  --rule 'drop dir=s2c min_len=4096'

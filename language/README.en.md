@@ -98,6 +98,8 @@ Client configuration example:
 
 `nazuko version --json` and `nazuko analyze <file> --json` provide machine-readable output. See [../docs/MCP.md](../docs/MCP.md).
 
+Language priority, config and custom catalogs: [../docs/LANGUAGE.md](../docs/LANGUAGE.md).
+
     ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \

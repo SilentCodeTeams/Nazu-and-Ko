@@ -95,6 +95,8 @@ Qt 客户端：
 
 `nazuko version --json` 和 `nazuko analyze <file> --json` 提供机器可读输出。详见 [docs/MCP.md](../docs/MCP.md)。
 
+语言优先级、配置文件和自定义语言文件见 [docs/LANGUAGE.md](../docs/LANGUAGE.md)。
+
 
     ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \

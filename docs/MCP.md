@@ -75,6 +75,12 @@ nazuko proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566 --json
 one JSON object per captured packet and suppresses the human banner.
 Diagnostics go to stderr with a non-zero exit code.
 
+## Language
+
+MCP protocol messages, tool descriptions and errors are always English. The CLI
+language setting does not affect MCP output; this keeps machine responses short
+and token-efficient.
+
 ## Safety boundary
 
 This slice is read-only. It does not start proxies, capture live traffic, change

@@ -23,7 +23,9 @@
 //!   nazuko version
 
 mod daemon;
+mod i18n;
 mod json_sink;
+mod language;
 mod mcp;
 
 use std::env;
@@ -44,8 +46,34 @@ use nettool_proxy::{
 type CliResult = Result<(), Box<dyn Error>>;
 
 fn main() {
-    let args: Vec<String> = env::args().skip(1).collect();
-    let result = match args.first().map(String::as_str) {
+    let mut args: Vec<String> = env::args().skip(1).collect();
+    let cli_lang_file = take_option(&mut args, "--lang-file");
+    let cli_lang = take_option(&mut args, "--lang");
+    let command = args.first().map(String::as_str);
+
+    if command == Some("mcp")
+        || command == Some("version")
+        || command == Some("--version")
+        || command == Some("-V")
+    {
+        i18n::init_code("en");
+    } else {
+        match language::resolve(cli_lang_file, cli_lang) {
+            Ok(language::Selection::Builtin(code)) => i18n::init_code(&code),
+            Ok(language::Selection::Custom(path)) => {
+                if let Err(error) = i18n::init_custom(&path) {
+                    eprintln!("Error: {error}");
+                    std::process::exit(2);
+                }
+            }
+            Err(error) => {
+                eprintln!("Error: {error}");
+                std::process::exit(2);
+            }
+        }
+    }
+
+    let result = match command {
         Some("proxy") => cmd_proxy(&args[1..]),
         Some("serve") => cmd_serve(&args[1..]),
         Some("analyze") => cmd_analyze(&args[1..]),
@@ -57,13 +85,38 @@ fn main() {
         }
         Some(other) => {
             usage();
-            Err(invalid(format!("unknown command: {other}")))
+            Err(invalid(i18n::tr_args(
+                "cli.error.unknownCommand",
+                &[("command", other)],
+            )))
         }
     };
     if let Err(e) = result {
-        eprintln!("error: {e}");
+        eprintln!("{}{e}", i18n::t("cli.error.prefix"));
         std::process::exit(1);
     }
+}
+
+fn take_option(args: &mut Vec<String>, name: &str) -> Option<String> {
+    let mut index = 0;
+    while index < args.len() {
+        if args[index] == name {
+            if index + 1 < args.len() {
+                let value = args[index + 1].clone();
+                args.drain(index..=index + 1);
+                return Some(value);
+            }
+            args.remove(index);
+            return None;
+        }
+        if let Some(value) = args[index].strip_prefix(&format!("{name}=")) {
+            let value = value.to_string();
+            args.remove(index);
+            return Some(value);
+        }
+        index += 1;
+    }
+    None
 }
 
 fn invalid(message: String) -> Box<dyn Error> {
@@ -89,55 +142,73 @@ fn take_flags(args: &[String], name: &str) -> Vec<String> {
         .collect()
 }
 
-fn split_host_port(value: &str) -> Result<(String, u16), Box<dyn Error>> {
-    let (host, port) = value
-        .rsplit_once(':')
-        .ok_or_else(|| invalid(format!("expected host:port, got {value}")))?;
+fn split_host_port(value: &str, flag: &str) -> Result<(String, u16), Box<dyn Error>> {
+    let (host, port) = value.rsplit_once(':').ok_or_else(|| {
+        invalid(i18n::tr_args(
+            "cli.error.hostPort",
+            &[("flag", flag), ("value", value)],
+        ))
+    })?;
     if host.is_empty() {
-        return Err(invalid(format!("empty host in {value}")));
+        return Err(invalid(i18n::tr_args(
+            "cli.error.hostEmpty",
+            &[("flag", flag), ("value", value)],
+        )));
     }
-    let port = port
-        .parse::<u16>()
-        .map_err(|_| invalid(format!("bad port in {value}")))?;
+    let port = port.parse::<u16>().map_err(|_| {
+        invalid(i18n::tr_args(
+            "cli.error.port",
+            &[("flag", flag), ("value", port)],
+        ))
+    })?;
     Ok((host.to_string(), port))
 }
 
 fn cmd_proxy(args: &[String]) -> CliResult {
     let listen_value = take_flag(args, "--listen").unwrap_or_else(|| "127.0.0.1:25565".to_string());
     let listen: SocketAddr = listen_value.parse().map_err(|_| {
-        invalid(format!(
-            "--listen: expected IP:port, got {listen_value:?}; example: --listen 127.0.0.1:25565"
+        invalid(i18n::tr_args(
+            "cli.error.listen",
+            &[("flag", "--listen"), ("value", &listen_value)],
         ))
     })?;
     let target = take_flag(args, "--target").unwrap_or_else(|| "127.0.0.1:25566".to_string());
-    let (target_host, target_port) = split_host_port(&target)?;
+    let (target_host, target_port) = split_host_port(&target, "--target")?;
     let protocol_name = take_flag(args, "--protocol").unwrap_or_else(|| "auto".to_string());
-    let protocol = DetectMode::parse(&protocol_name)
-        .ok_or_else(|| invalid(format!("bad --protocol: {protocol_name}")))?;
+    let protocol = DetectMode::parse(&protocol_name).ok_or_else(|| {
+        invalid(i18n::tr_args(
+            "cli.error.protocol",
+            &[("value", &protocol_name)],
+        ))
+    })?;
     let pcap = take_flag(args, "--pcap").map(PathBuf::from);
     let quiet = has_flag(args, "--quiet");
     let json = has_flag(args, "--json");
     let drop_direction = match take_flag(args, "--drop-direction") {
-        Some(value) => Some(
-            Direction::parse(&value)
-                .ok_or_else(|| invalid(format!("bad --drop-direction: {value}")))?,
-        ),
+        Some(value) => Some(Direction::parse(&value).ok_or_else(|| {
+            invalid(i18n::tr_args(
+                "cli.error.dropDirection",
+                &[("value", &value)],
+            ))
+        })?),
         None => None,
     };
     let duration = match take_flag(args, "--duration") {
-        Some(value) => Some(Duration::from_secs(
-            value
-                .parse::<u64>()
-                .map_err(|_| invalid(format!("bad --duration: {value}")))?,
-        )),
+        Some(value) => Some(Duration::from_secs(value.parse::<u64>().map_err(|_| {
+            invalid(i18n::tr_args("cli.error.duration", &[("value", &value)]))
+        })?)),
         None => None,
     };
     let rule_specs = take_flags(args, "--rule");
     if rule_specs.is_empty() && has_flag(args, "--rule") {
-        return Err(invalid("--rule requires a value".to_string()));
+        return Err(invalid(i18n::t("cli.error.ruleMissing")));
     }
-    let rules =
-        RuleSet::parse(&rule_specs).map_err(|error| invalid(format!("bad --rule: {error}")))?;
+    let rules = RuleSet::parse(&rule_specs).map_err(|error| {
+        invalid(i18n::tr_args(
+            "cli.error.rule",
+            &[("error", &error.to_string())],
+        ))
+    })?;
 
     let mut sinks: Vec<SharedSink> = Vec::new();
     if let Some(path) = &pcap {
@@ -161,20 +232,48 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         duration,
     };
     if !json {
-        println!("nazuko proxy");
-        println!("  listen: {}", config.listen);
-        println!("  target: {}:{}", config.target_host, config.target_port);
+        println!("{}", i18n::t("cli.proxy.title"));
+        println!(
+            "{}",
+            i18n::tr_args("cli.proxy.listen", &[("value", &config.listen.to_string())])
+        );
+        println!(
+            "{}",
+            i18n::tr_args(
+                "cli.proxy.target",
+                &[(
+                    "value",
+                    &format!("{}:{}", config.target_host, config.target_port)
+                )]
+            )
+        );
         if !config.rules.is_empty() {
-            println!("  rules: {}", config.rules.len());
+            println!(
+                "{}",
+                i18n::tr_args(
+                    "cli.proxy.rules",
+                    &[("value", &config.rules.len().to_string())]
+                )
+            );
         }
     }
     let proxy = Proxy::bind(config).map_err(|error| {
-        invalid(format!(
-            "proxy: cannot bind {listen}: {error}; --listen must be an IP assigned to this machine (try 127.0.0.1:<port> or 0.0.0.0:<port>); ports below 1024 usually require privileges"
+        invalid(i18n::tr_args(
+            "cli.error.proxyBind",
+            &[
+                ("address", &listen.to_string()),
+                ("error", &error.to_string()),
+            ],
         ))
     })?;
     if !json {
-        println!("  bound: {}", proxy.local_addr()?);
+        println!(
+            "{}",
+            i18n::tr_args(
+                "cli.proxy.bound",
+                &[("value", &proxy.local_addr()?.to_string())]
+            )
+        );
     }
     proxy.run()?;
     Ok(())
@@ -183,18 +282,38 @@ fn cmd_proxy(args: &[String]) -> CliResult {
 fn cmd_serve(args: &[String]) -> CliResult {
     let bind_value = take_flag(args, "--bind").unwrap_or_else(|| "127.0.0.1:0".to_string());
     let bind: SocketAddr = bind_value.parse().map_err(|_| {
-        invalid(format!(
-            "--bind: expected IP:port, got {bind_value:?}; example: --bind 127.0.0.1:0"
+        invalid(i18n::tr_args(
+            "cli.error.bind",
+            &[("flag", "--bind"), ("value", &bind_value)],
         ))
     })?;
     let state_path = take_flag(args, "--state")
         .map(PathBuf::from)
         .unwrap_or_else(|| env::temp_dir().join(format!("nazuko-{}.state", std::process::id())));
-    let daemon = daemon::Daemon::bind(bind, state_path.clone())
-        .map_err(|error| invalid(format!("serve: cannot bind {bind}: {error}")))?;
-    println!("nazuko control server");
-    println!("  bind: {}", daemon.local_addr()?);
-    println!("  state: {}", state_path.display());
+    let daemon = daemon::Daemon::bind(bind, state_path.clone()).map_err(|error| {
+        invalid(i18n::tr_args(
+            "cli.error.serveBind",
+            &[
+                ("address", &bind.to_string()),
+                ("error", &error.to_string()),
+            ],
+        ))
+    })?;
+    println!("{}", i18n::t("cli.serve.title"));
+    println!(
+        "{}",
+        i18n::tr_args(
+            "cli.serve.bind",
+            &[("value", &daemon.local_addr()?.to_string())]
+        )
+    );
+    println!(
+        "{}",
+        i18n::tr_args(
+            "cli.serve.state",
+            &[("value", &state_path.display().to_string())]
+        )
+    );
     daemon.run()?;
     Ok(())
 }
@@ -227,12 +346,7 @@ fn positional_path(args: &[String]) -> Option<&str> {
 }
 
 fn cmd_analyze(args: &[String]) -> CliResult {
-    let path = positional_path(args).ok_or_else(|| {
-        invalid(
-            "usage: nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]"
-                .to_string(),
-        )
-    })?;
+    let path = positional_path(args).ok_or_else(|| invalid(i18n::t("cli.error.analyzeUsage")))?;
     let hex = has_flag(args, "--hex");
     let dissect = has_flag(args, "--dissect");
     let json = has_flag(args, "--json");
@@ -247,8 +361,18 @@ fn cmd_analyze(args: &[String]) -> CliResult {
         println!("{}", output.to_json_string());
         return Ok(());
     }
-    let file = File::open(path)?;
-    let packets = read_pcap(file)?;
+    let file = File::open(path).map_err(|error| {
+        invalid(i18n::tr_args(
+            "cli.error.analyzeOpen",
+            &[("path", path), ("error", &error.to_string())],
+        ))
+    })?;
+    let packets = read_pcap(file).map_err(|error| {
+        invalid(i18n::tr_args(
+            "cli.error.analyzeParse",
+            &[("path", path), ("error", &error.to_string())],
+        ))
+    })?;
     println!("{} packets from {}", packets.len(), path);
     let take = if limit == 0 {
         packets.len()
@@ -313,30 +437,7 @@ fn preview(data: &[u8]) -> String {
 
 fn usage() {
     println!(
-        "nazuko {}\n\
-         \n\
-         USAGE:\n\
-         \x20 nazuko proxy [options]\n\
-         \x20 nazuko serve [--bind 127.0.0.1:0] [--state <file>]\n\
-         \x20 nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]\n\
-         \x20 nazuko mcp                 stdio MCP server (read-only tools)\n\
-         \x20 nazuko version [--json]\n\
-         \n\
-         PROXY OPTIONS:\n\
-         \x20 --listen <ip:port>       default 127.0.0.1:25565\n\
-         \x20 --target <host:port>     default 127.0.0.1:25566\n\
-         \x20 --protocol <mode>        auto | mc | http | tls | dns | ws | quic | raw\n\
-         \x20 --pcap <file>            write a real pcap\n\
-         \x20 --duration <seconds>     stop accepting after N seconds\n\
-         \x20 --drop-direction <dir>   drop c2s or s2c (still captured)\n\
-         \x20 --rule <expr>            repeatable drop/allow predicate\n\
-         \x20 --quiet                  suppress console per-packet output\n\
-         \x20 --json                   emit newline-delimited packet JSON\n\
-         \n\
-         RULE EXAMPLES:\n\
-         \x20 --rule 'drop dir=c2s proto=mc contains=hello'\n\
-         \x20 --rule 'drop proto=http prefix=GET'\n\
-         \x20 --rule 'drop dir=s2c min_len=4096'",
-        env!("CARGO_PKG_VERSION")
+        "{}",
+        i18n::tr_args("cli.help", &[("version", env!("CARGO_PKG_VERSION"))])
     );
 }
