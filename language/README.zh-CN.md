@@ -60,6 +60,22 @@ Qt 客户端：
 
 `nazuko` 是唯一安装的用户 CLI。旧 `nettoold` 名称已退役，不再生成同名二进制。当前本地控制服务器通过 `nazuko serve` 启动；如果以后拆成独立 daemon，内部进程名为 `nazukod`，不占用用户 CLI。
 
+### MCP
+
+`nazuko mcp` 启动 stdio MCP server，当前提供只读工具：
+
+- `nazuko_version`
+- `nazuko_analyze_pcap`
+
+客户端配置示例：
+
+```json
+{"mcpServers":{"nazuko":{"command":"nazuko","args":["mcp"]}}}
+```
+
+`nazuko version --json` 和 `nazuko analyze <file> --json` 提供机器可读输出。详见 [docs/MCP.md](../docs/MCP.md)。
+
+
     ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \

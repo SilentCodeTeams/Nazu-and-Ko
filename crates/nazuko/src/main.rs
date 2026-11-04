@@ -12,6 +12,7 @@
 //!   nazuko version
 
 mod daemon;
+mod mcp;
 
 use std::env;
 use std::error::Error;
@@ -35,10 +36,8 @@ fn main() {
         Some("proxy") => cmd_proxy(&args[1..]),
         Some("serve") => cmd_serve(&args[1..]),
         Some("analyze") => cmd_analyze(&args[1..]),
-        Some("version") | Some("--version") | Some("-V") => {
-            println!("nazuko {}", env!("CARGO_PKG_VERSION"));
-            Ok(())
-        }
+        Some("mcp") => mcp::run().map_err(|error| Box::new(error) as Box<dyn Error>),
+        Some("version") | Some("--version") | Some("-V") => cmd_version(&args[1..]),
         Some("help") | Some("--help") | Some("-h") | None => {
             usage();
             Ok(())
@@ -171,17 +170,63 @@ fn cmd_serve(args: &[String]) -> CliResult {
     Ok(())
 }
 
+fn cmd_version(args: &[String]) -> CliResult {
+    if has_flag(args, "--json") {
+        println!("{}", mcp::version_json().to_json_string());
+    } else {
+        println!("nazuko {}", env!("CARGO_PKG_VERSION"));
+    }
+    Ok(())
+}
+
+fn positional_path(args: &[String]) -> Option<&str> {
+    let mut skip_value = false;
+    for arg in args {
+        if skip_value {
+            skip_value = false;
+            continue;
+        }
+        if arg == "--limit" {
+            skip_value = true;
+            continue;
+        }
+        if !arg.starts_with('-') {
+            return Some(arg);
+        }
+    }
+    None
+}
+
 fn cmd_analyze(args: &[String]) -> CliResult {
-    let path = args
-        .iter()
-        .find(|a| !a.starts_with('-'))
-        .ok_or_else(|| invalid("usage: nazuko analyze <file.pcap> [--hex]".to_string()))?;
+    let path = positional_path(args).ok_or_else(|| {
+        invalid(
+            "usage: nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]"
+                .to_string(),
+        )
+    })?;
     let hex = has_flag(args, "--hex");
     let dissect = has_flag(args, "--dissect");
+    let json = has_flag(args, "--json");
+    let limit = match take_flag(args, "--limit") {
+        Some(value) => value
+            .parse::<usize>()
+            .map_err(|_| invalid(format!("bad --limit: {value}")))?,
+        None => 0,
+    };
+    if json {
+        let output = mcp::analyze_pcap_json(path, limit, hex, dissect)?;
+        println!("{}", output.to_json_string());
+        return Ok(());
+    }
     let file = File::open(path)?;
     let packets = read_pcap(file)?;
     println!("{} packets from {}", packets.len(), path);
-    for (index, packet) in packets.iter().enumerate() {
+    let take = if limit == 0 {
+        packets.len()
+    } else {
+        limit.min(packets.len())
+    };
+    for (index, packet) in packets.iter().take(take).enumerate() {
         println!(
             "#{} ts={}.{:06} {}:{} -> {}:{} seq={} ack={} len={}",
             index + 1,
@@ -244,8 +289,9 @@ fn usage() {
          USAGE:\n\
          \x20 nazuko proxy [options]\n\
          \x20 nazuko serve [--bind 127.0.0.1:0] [--state <file>]\n\
-         \x20 nazuko analyze <file.pcap> [--hex] [--dissect]\n\
-         \x20 nazuko version\n\
+         \x20 nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]\n\
+         \x20 nazuko mcp                 stdio MCP server (read-only tools)\n\
+         \x20 nazuko version [--json]\n\
          \n\
          PROXY OPTIONS:\n\
          \x20 --listen <addr>          default 127.0.0.1:25565\n\

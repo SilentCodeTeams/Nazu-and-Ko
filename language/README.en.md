@@ -63,6 +63,21 @@ Quality gates:
 
 `nazuko` is the only installed user-facing CLI. The legacy `nettoold` name is retired and no `nettoold` binary is built. The local control server currently starts via `nazuko serve`; if it is split into a separate daemon later, the internal process name will be `nazukod`, not the user CLI.
 
+### MCP
+
+`nazuko mcp` starts a stdio MCP server. Current tools are read-only:
+
+- `nazuko_version`
+- `nazuko_analyze_pcap`
+
+Client configuration example:
+
+```json
+{"mcpServers":{"nazuko":{"command":"nazuko","args":["mcp"]}}}
+```
+
+`nazuko version --json` and `nazuko analyze <file> --json` provide machine-readable output. See [../docs/MCP.md](../docs/MCP.md).
+
     ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \

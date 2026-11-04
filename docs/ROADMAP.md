@@ -107,6 +107,17 @@ official UI.
 Acceptance: no empty center, panels fill and remain user-resizable, island
 shows ready/task states, no modal task UI.
 
+### P1.5 — CLI and MCP contract
+
+- [x] Machine-readable `nazuko version --json` and `nazuko analyze --json`.
+- [x] `nazuko mcp` stdio server with `initialize`, `tools/list`, `tools/call`.
+- [x] Read-only tools: `nazuko_version`, `nazuko_analyze_pcap`.
+- [ ] Write tools for proxy/capture only after authorization, dry-run and audit.
+- [ ] MCP resources for live sessions and pcap handles.
+
+Acceptance: a standard MCP client can initialize, list tools, analyze a pcap,
+and receive structured content; stdout carries protocol messages only.
+
 ### P2 — Capture and session core
 
 - Define the CaptureBackend plugin ABI.
