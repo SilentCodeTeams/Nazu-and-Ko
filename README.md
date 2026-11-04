@@ -158,7 +158,6 @@ Nazu&Ko 仅用于自有系统或获得书面授权的测试，不提供隐蔽、
 | 头像 | 贡献者 | 角色 |
 |------|--------|------|
 | <img src="assets/deepseek-2.svg" width="64" alt="DeepSeek-Work-In-SilentStudio"/> | **DeepSeek-Work-In-SilentStudio** (@DeepSeek-Work-In-SilentStudio) | AI 开发（贡献者身份） |
-| | **Silent-xiaomiao** | 项目发起 / 发布（GitHub: [Silent-xiaomiao](https://github.com/Silent-xiaomiao)） |
 
 ## 许可证
 

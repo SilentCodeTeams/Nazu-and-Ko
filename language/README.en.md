@@ -162,7 +162,6 @@ not ship stealth, evasion or unauthorized remote-control features. See
 ## Contributors
 
 - **DeepSeek-Work-In-SilentStudio** — AI development (contributor identity)
-- **Silent-xiaomiao** — project initiator / releases ([GitHub](https://github.com/Silent-xiaomiao))
 
 ## License
 
