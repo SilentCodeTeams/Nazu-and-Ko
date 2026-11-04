@@ -2,6 +2,7 @@
 
 #include "Translator.h"
 
+#include <QButtonGroup>
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -11,6 +12,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QSettings>
 #include <QSpinBox>
 #include <QTabWidget>
@@ -171,6 +173,23 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     const int languageIndex = language_->findData(language);
     language_->setCurrentIndex(languageIndex >= 0 ? languageIndex : language_->findData(QStringLiteral("en")));
     generalForm->addRow(translate("dialog.settings.language"), language_);
+
+    auto *sideWidget = new QWidget(general);
+    auto *sideLayout = new QHBoxLayout(sideWidget);
+    sideLayout->setContentsMargins(0, 0, 0, 0);
+    controlsLeft_ = new QRadioButton(translate("window.left"), sideWidget);
+    controlsRight_ = new QRadioButton(translate("window.right"), sideWidget);
+    auto *sideGroup = new QButtonGroup(sideWidget);
+    sideGroup->addButton(controlsLeft_);
+    sideGroup->addButton(controlsRight_);
+    const QString side = settings.value(QStringLiteral("window/controlsSide"),
+                                        QStringLiteral("left")).toString();
+    controlsLeft_->setChecked(side != QStringLiteral("right"));
+    controlsRight_->setChecked(side == QStringLiteral("right"));
+    sideLayout->addWidget(controlsLeft_);
+    sideLayout->addWidget(controlsRight_);
+    sideLayout->addStretch(1);
+    generalForm->addRow(translate("window.controlsSide"), sideWidget);
     tabs->addTab(general, translate("dialog.settings.general"));
 
     auto *notifications = new QWidget(tabs);
@@ -255,10 +274,16 @@ int SettingsDialog::selectedFontSize() const {
     return fontSize_->value();
 }
 
+QString SettingsDialog::controlsSide() const {
+    return controlsRight_ && controlsRight_->isChecked() ? QStringLiteral("right")
+                                                          : QStringLiteral("left");
+}
+
 void SettingsDialog::saveSettings() {
     QSettings settings;
     settings.setValue(QStringLiteral("ui/theme"), selectedTheme());
     settings.setValue(QStringLiteral("ui/fontSize"), fontSize_->value());
+    settings.setValue(QStringLiteral("window/controlsSide"), controlsSide());
     const QString previousLanguage = Translator::instance().code();
     const QString selectedLanguage = language_->currentData().toString();
     settings.setValue(QStringLiteral("ui/language"), selectedLanguage);

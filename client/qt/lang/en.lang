@@ -297,3 +297,11 @@ v2.placeholder=Page frame preview
 v2.previewLabel=v2 · preview
 v2.language.zh=简体中文
 v2.language.en=English
+
+window.subtitle=LOCAL WORKSPACE
+window.controlsSide=Window controls
+window.left=Left
+window.right=Right
+window.close=Close
+window.minimize=Minimize
+window.zoom=Zoom

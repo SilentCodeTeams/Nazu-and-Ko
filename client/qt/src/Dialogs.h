@@ -6,6 +6,7 @@
 class QCheckBox;
 class QComboBox;
 class QLineEdit;
+class QRadioButton;
 class QSpinBox;
 
 class SmartExportDialog : public QDialog {
@@ -51,6 +52,7 @@ public:
     explicit SettingsDialog(QWidget *parent = nullptr);
     QString selectedTheme() const;
     int selectedFontSize() const;
+    QString controlsSide() const;
 
 private:
     void saveSettings();
@@ -58,6 +60,8 @@ private:
     QComboBox *theme_ = nullptr;
     QSpinBox *fontSize_ = nullptr;
     QComboBox *language_ = nullptr;
+    QRadioButton *controlsLeft_ = nullptr;
+    QRadioButton *controlsRight_ = nullptr;
     QCheckBox *notificationEnabled_ = nullptr;
     QSpinBox *notificationDuration_ = nullptr;
     QComboBox *notificationPosition_ = nullptr;

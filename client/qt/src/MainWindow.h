@@ -1,14 +1,19 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QPoint>
 #include <QString>
 
 class QAction;
 class QComboBox;
 class QDockWidget;
 class QFrame;
+class QHBoxLayout;
 class QLabel;
 class QLineEdit;
+class QTabWidget;
+class QToolBar;
+class QToolButton;
 class NotificationCenter;
 class PacketEditor;
 class WebDashboardServer;
@@ -27,6 +32,7 @@ public:
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void startProxy();
@@ -55,6 +61,9 @@ private:
     void createToolBar();
     void createDocks();
     void createStatusBar();
+    QWidget *createTitleBar();
+    QWidget *createWorkspace();
+    void applyControlsSide(const QString &side);
     QString t(const QString &key) const;
     QString findProxyBinary() const;
     void setProxyRunning(bool running);
@@ -69,6 +78,12 @@ private:
     void applyZoom();
 
     QTableWidget *packetTable_ = nullptr;
+    QToolBar *toolbar_ = nullptr;
+    QFrame *titleBar_ = nullptr;
+    QWidget *windowControls_ = nullptr;
+    QHBoxLayout *titleLayout_ = nullptr;
+    QTabWidget *inspectorTabs_ = nullptr;
+    QPoint dragOffset_;
     QDockWidget *packetDock_ = nullptr;
     QDockWidget *requestDock_ = nullptr;
     QDockWidget *responseDock_ = nullptr;

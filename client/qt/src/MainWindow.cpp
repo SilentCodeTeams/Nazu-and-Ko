@@ -34,6 +34,7 @@
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
+#include <QMouseEvent>
 #include <QPlainTextEdit>
 #include <QPoint>
 #include <QProcess>
@@ -41,18 +42,22 @@
 #include <QRegularExpression>
 #include <QSettings>
 #include <QSignalBlocker>
+#include <QSizeGrip>
+#include <QSplitter>
 #include <QSizePolicy>
 #include <QStandardPaths>
 #include <QStatusBar>
 #include <QStringConverter>
 #include <QStyle>
 #include <QStyleHints>
+#include <QTabWidget>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextStream>
 #include <QTime>
 #include <QTimer>
 #include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWheelEvent>
 #include <QWidget>
@@ -62,6 +67,11 @@ namespace {
 QString lightStyle() {
     return QStringLiteral(R"STYLE(
 QMainWindow { background: #F5F6F8; }
+QFrame#titleBar { background: #FFFFFF; border-bottom: 1px solid #E4E7EC; }
+QLabel#titleBrand { color: #111827; font-size: 12px; font-weight: 700; }
+QLabel#titleMeta { color: #667085; font-size: 10px; }
+QFrame#workspacePanel { background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 10px; }
+QTabWidget#inspectorTabs::pane { border: none; background: #FFFFFF; }
 QWidget#dashboard { background: #F5F6F8; }
 QWidget { color: #111827; }
 QLabel { background: transparent; }
@@ -120,6 +130,11 @@ QTabWidget::pane { border: 1px solid #E4E7EC; border-radius: 8px; background: #F
 QString darkStyle() {
     return QStringLiteral(R"STYLE(
 QMainWindow { background: #0B0F14; }
+QFrame#titleBar { background: #11161F; border-bottom: 1px solid #232B36; }
+QLabel#titleBrand { color: #E6EAF0; font-size: 12px; font-weight: 700; }
+QLabel#titleMeta { color: #8B96A7; font-size: 10px; }
+QFrame#workspacePanel { background: #11161F; border: 1px solid #232B36; border-radius: 10px; }
+QTabWidget#inspectorTabs::pane { border: none; background: #11161F; }
 QWidget#dashboard { background: #0B0F14; }
 QWidget { color: #E6EAF0; }
 QLabel { background: transparent; }
@@ -179,8 +194,9 @@ QTabWidget::pane { border: 1px solid #232B36; border-radius: 8px; background: #1
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle(t("app.title"));
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    setMinimumSize(1100, 700);
     setGeometry(50, 50, 1400, 900);
-    setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks);
 
     QSettings settings;
     theme_ = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
@@ -189,9 +205,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     createMenus();
     createToolBar();
-    createDocks();
     createStatusBar();
-    setCentralWidget(createDashboard());
+    setCentralWidget(createWorkspace());
     setTheme(theme_);
     configureWebDashboard();
     updateWebDashboard();
@@ -294,7 +309,8 @@ void MainWindow::createMenus() {
 }
 
 void MainWindow::createToolBar() {
-    QToolBar *toolbar = addToolBar(t("toolbar.title"));
+    toolbar_ = new QToolBar(this);
+    QToolBar *toolbar = toolbar_;
     toolbar->setObjectName(QStringLiteral("main_toolbar"));
     toolbar->setMovable(false);
     toolbar->setIconSize(QSize(14, 14));
@@ -327,17 +343,160 @@ void MainWindow::createToolBar() {
     connect(filterInput_, &QLineEdit::textChanged, this, &MainWindow::applyFilter);
     toolbar->addWidget(filterInput_);
     toolbar->addSeparator();
-
-    auto *themeLabel = new QLabel(t("toolbar.theme") + QStringLiteral(":"), this);
-    themeLabel->setObjectName(QStringLiteral("toolbarLabel"));
-    toolbar->addWidget(themeLabel);
-    themeCombo_ = new QComboBox(this);
-    themeCombo_->addItems({t("theme.light"), t("theme.dark"), t("theme.system")});
-    themeCombo_->setMinimumWidth(120);
-    connect(themeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onThemeComboChanged);
-    toolbar->addWidget(themeCombo_);
 }
 
+QWidget *MainWindow::createTitleBar() {
+    titleBar_ = new QFrame(this);
+    titleBar_->setObjectName(QStringLiteral("titleBar"));
+    titleBar_->setFixedHeight(42);
+    titleLayout_ = new QHBoxLayout(titleBar_);
+    titleLayout_->setContentsMargins(14, 0, 14, 0);
+    titleLayout_->setSpacing(10);
+
+    windowControls_ = new QWidget(titleBar_);
+    auto *controlsLayout = new QHBoxLayout(windowControls_);
+    controlsLayout->setContentsMargins(0, 0, 0, 0);
+    controlsLayout->setSpacing(7);
+
+    auto addLight = [&](const QString &color, const QString &tooltip, auto action) {
+        auto *button = new QToolButton(windowControls_);
+        button->setFixedSize(13, 13);
+        button->setCursor(Qt::PointingHandCursor);
+        button->setToolTip(tooltip);
+        button->setStyleSheet(QStringLiteral(
+            "QToolButton { background: %1; border: none; border-radius: 6px; }")
+                                   .arg(color));
+        connect(button, &QToolButton::clicked, this, action);
+        controlsLayout->addWidget(button);
+    };
+    addLight(QStringLiteral("#FF5F57"), t("window.close"), [this] { close(); });
+    addLight(QStringLiteral("#FEBC2E"), t("window.minimize"), [this] { showMinimized(); });
+    addLight(QStringLiteral("#28C840"), t("window.zoom"), [this] {
+        isMaximized() ? showNormal() : showMaximized();
+    });
+
+    titleLayout_->addWidget(windowControls_);
+    auto *brand = new QLabel(QStringLiteral("NetTool ζ"), titleBar_);
+    brand->setObjectName(QStringLiteral("titleBrand"));
+    brand->setAttribute(Qt::WA_TransparentForMouseEvents);
+    auto *meta = new QLabel(t("window.subtitle"), titleBar_);
+    meta->setObjectName(QStringLiteral("titleMeta"));
+    meta->setAttribute(Qt::WA_TransparentForMouseEvents);
+    titleLayout_->addWidget(brand);
+    titleLayout_->addWidget(meta);
+    titleLayout_->addStretch(1);
+
+    titleBar_->installEventFilter(this);
+    applyControlsSide(QSettings().value(QStringLiteral("window/controlsSide"),
+                                        QStringLiteral("left")).toString());
+    return titleBar_;
+}
+
+void MainWindow::applyControlsSide(const QString &side) {
+    if (!titleLayout_ || !windowControls_) {
+        return;
+    }
+    titleLayout_->removeWidget(windowControls_);
+    if (side == QStringLiteral("right")) {
+        titleLayout_->addWidget(windowControls_);
+    } else {
+        titleLayout_->insertWidget(0, windowControls_);
+    }
+}
+
+bool MainWindow::eventFilter(QObject *watched, QEvent *event) {
+    if (watched == titleBar_) {
+        auto *mouse = static_cast<QMouseEvent *>(event);
+        if (event->type() == QEvent::MouseButtonPress && mouse->button() == Qt::LeftButton) {
+            dragOffset_ = mouse->globalPosition().toPoint() - frameGeometry().topLeft();
+            return true;
+        }
+        if (event->type() == QEvent::MouseMove && (mouse->buttons() & Qt::LeftButton)) {
+            move(mouse->globalPosition().toPoint() - dragOffset_);
+            return true;
+        }
+        if (event->type() == QEvent::MouseButtonDblClick) {
+            isMaximized() ? showNormal() : showMaximized();
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(watched, event);
+}
+
+QWidget *MainWindow::createWorkspace() {
+    auto *root = new QWidget(this);
+    auto *layout = new QVBoxLayout(root);
+    layout->setContentsMargins(0, 0, 0, 0);
+    layout->setSpacing(0);
+    layout->addWidget(createTitleBar());
+    if (toolbar_) {
+        layout->addWidget(toolbar_);
+    }
+
+    auto *splitter = new QSplitter(Qt::Horizontal, root);
+    splitter->setChildrenCollapsible(false);
+
+    auto *tablePanel = new QFrame(splitter);
+    tablePanel->setObjectName(QStringLiteral("workspacePanel"));
+    auto *tableLayout = new QVBoxLayout(tablePanel);
+    tableLayout->setContentsMargins(12, 10, 12, 12);
+    tableLayout->setSpacing(6);
+    auto *tableTitle = new QLabel(t("table.title"), tablePanel);
+    tableTitle->setObjectName(QStringLiteral("sectionTitle"));
+    emptyHint_ = new QLabel(t("table.empty"), tablePanel);
+    emptyHint_->setObjectName(QStringLiteral("emptyHint"));
+    emptyHint_->setWordWrap(true);
+    packetTable_ = new QTableWidget(tablePanel);
+    packetTable_->setColumnCount(6);
+    packetTable_->setHorizontalHeaderLabels({
+        t("table.id"), t("table.time"), t("table.direction"),
+        t("table.length"), t("table.status"), t("table.summary"),
+    });
+    packetTable_->setAlternatingRowColors(true);
+    packetTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
+    packetTable_->setSelectionMode(QAbstractItemView::SingleSelection);
+    packetTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    packetTable_->setShowGrid(false);
+    packetTable_->verticalHeader()->setVisible(false);
+    packetTable_->verticalHeader()->setDefaultSectionSize(30);
+    packetTable_->horizontalHeader()->setHighlightSections(false);
+    packetTable_->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+    packetTable_->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
+    packetTable_->setColumnWidth(0, 48);
+    packetTable_->setColumnWidth(1, 138);
+    packetTable_->setColumnWidth(2, 66);
+    packetTable_->setColumnWidth(3, 66);
+    packetTable_->setColumnWidth(4, 78);
+    packetTable_->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(packetTable_, &QTableWidget::customContextMenuRequested,
+            this, &MainWindow::showPacketContextMenu);
+    connect(packetTable_, &QTableWidget::cellDoubleClicked,
+            this, &MainWindow::onPacketDoubleClicked);
+    tableLayout->addWidget(tableTitle);
+    tableLayout->addWidget(emptyHint_);
+    tableLayout->addWidget(packetTable_, 1);
+
+    auto *inspectorPanel = new QFrame(splitter);
+    inspectorPanel->setObjectName(QStringLiteral("workspacePanel"));
+    auto *inspectorLayout = new QVBoxLayout(inspectorPanel);
+    inspectorLayout->setContentsMargins(8, 8, 8, 8);
+    inspectorTabs_ = new QTabWidget(inspectorPanel);
+    inspectorTabs_->setObjectName(QStringLiteral("inspectorTabs"));
+    requestEditor_ = new PacketEditor(inspectorTabs_);
+    requestEditor_->setPlaceholderText(t("inspector.requestPlaceholder"));
+    responseEditor_ = new PacketEditor(inspectorTabs_);
+    responseEditor_->setPlaceholderText(t("inspector.responsePlaceholder"));
+    inspectorTabs_->addTab(requestEditor_, t("inspector.requestTitle"));
+    inspectorTabs_->addTab(responseEditor_, t("inspector.responseTitle"));
+    inspectorLayout->addWidget(inspectorTabs_, 1);
+
+    splitter->addWidget(tablePanel);
+    splitter->addWidget(inspectorPanel);
+    splitter->setStretchFactor(0, 3);
+    splitter->setStretchFactor(1, 2);
+    layout->addWidget(splitter, 1);
+    return root;
+}
 void MainWindow::createDocks() {
     packetDock_ = new QDockWidget(t("table.title"), this);
     packetDock_->setObjectName(QStringLiteral("packet_dock"));
@@ -422,6 +581,7 @@ void MainWindow::createStatusBar() {
     statusBar()->addPermanentWidget(themeLabel_);
     statusBar()->addPermanentWidget(proxyStatusLabel_);
     statusBar()->addPermanentWidget(packetCountLabel_);
+    statusBar()->addPermanentWidget(new QSizeGrip(this));
 }
 
 QWidget *MainWindow::createDashboard() {
@@ -937,6 +1097,7 @@ void MainWindow::showSettings() {
     QFont font = QApplication::font();
     font.setPointSize(dialog.selectedFontSize());
     QApplication::setFont(font);
+    applyControlsSide(dialog.controlsSide());
     statusLabel_->setText(t("dialog.settings.saved"));
     notifications_->show(t("notification.settingsSaved"), NotificationCenter::Level::Success);
     configureWebDashboard();
@@ -986,13 +1147,15 @@ void MainWindow::setTheme(const QString &theme) {
     theme_ = theme;
     applyTheme(theme_);
 
-    const QSignalBlocker blocker(themeCombo_);
-    if (theme_ == QStringLiteral("light")) {
-        themeCombo_->setCurrentIndex(0);
-    } else if (theme_ == QStringLiteral("dark")) {
-        themeCombo_->setCurrentIndex(1);
-    } else {
-        themeCombo_->setCurrentIndex(2);
+    if (themeCombo_) {
+        const QSignalBlocker blocker(themeCombo_);
+        if (theme_ == QStringLiteral("light")) {
+            themeCombo_->setCurrentIndex(0);
+        } else if (theme_ == QStringLiteral("dark")) {
+            themeCombo_->setCurrentIndex(1);
+        } else {
+            themeCombo_->setCurrentIndex(2);
+        }
     }
 }
 
