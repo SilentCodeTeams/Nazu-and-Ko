@@ -1,7 +1,7 @@
-# NetTool ζ — 简体中文
+# Nazu&Ko — 简体中文
 # 格式: key=value；# 开头为注释；\n 表示换行。
-app.name=NetTool ζ
-app.title=SilentStudio© NetTool ζ - 终极协议安全测试平台
+app.name=Nazu&Ko
+app.title=Nazu&Ko - 终极协议安全测试平台
 
 menu.file=文件
 menu.export=导出数据包
@@ -153,10 +153,10 @@ notification.animation.slide=滑动
 notification.animation.pop=弹出
 notification.animation.bounce=弹跳
 dialog.settings.saved=设置已保存
-dialog.about.title=关于 NetTool ζ
-dialog.about.body=SilentStudio© NetTool ζ\n终极协议安全测试平台\n\nQt 6 Widgets 客户端
+dialog.about.title=关于 Nazu&Ko
+dialog.about.body=Nazu&Ko\n终极协议安全测试平台\n\nQt 6 Widgets 客户端
 dialog.tutorial.title=教程
-dialog.tutorial.body=NetTool ζ 核心功能：\n1. 代理：拦截和转发 Minecraft 协议数据包\n2. Repeater：重放 HTTP 请求\n3. Intruder：批量测试\n4. Scanner：漏洞扫描\n5. 规则引擎：过滤和修改数据包\n6. Web 仪表盘：远程监控（端口 2679）
+dialog.tutorial.body=Nazu&Ko 核心功能：\n1. 代理：拦截和转发 Minecraft 协议数据包\n2. Repeater：重放 HTTP 请求\n3. Intruder：批量测试\n4. Scanner：漏洞扫描\n5. 规则引擎：过滤和修改数据包
 
 common.close=关闭
 tools.invalidUrl=请输入有效 URL。
@@ -233,7 +233,7 @@ notification.proxyStopped=代理已停止
 notification.settingsSaved=设置已保存
 notification.exportSaved=数据包已导出
 
-web.title=NetTool ζ · 本地仪表盘
+web.title=Nazu&Ko · 本地仪表盘
 web.subtitle=实时查看代理状态与最近数据包。
 web.proxy=代理
 web.sessions=会话
@@ -242,7 +242,7 @@ web.recent=最近数据包
 web.empty=暂无数据包。
 web.running=运行中
 web.offline=未启动
-web.footer=NetTool ζ · 仅监听 127.0.0.1
+web.footer=Nazu&Ko · 仅监听 127.0.0.1
 
 v2.brandSub=本地控制台
 v2.status.offline=● 代理离线

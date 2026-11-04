@@ -26,4 +26,4 @@ Describe the change and why it is needed.
 
 - [ ] Authorized testing only
 - [ ] No stealth, evasion, or unauthorized control features
-- [ ] Apache-2.0 compatible
+- [ ] AGPL-3.0-or-later compatible

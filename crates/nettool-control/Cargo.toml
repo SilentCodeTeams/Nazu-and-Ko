@@ -3,4 +3,5 @@ name = "nettool-control"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "NetTool daemon control types: sessions, MAC leases, events"
+repository.workspace = true
+description = "Nazu&Ko daemon control types: sessions, MAC leases, events"

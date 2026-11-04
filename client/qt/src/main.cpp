@@ -11,7 +11,7 @@
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
     QCoreApplication::setOrganizationName(QStringLiteral("SilentStudio"));
-    QCoreApplication::setApplicationName(QStringLiteral("NetTool ζ"));
+    QCoreApplication::setApplicationName(QStringLiteral("Nazu&Ko"));
     app.setStyle(QStringLiteral("Fusion"));
 
     const QStringList arguments = app.arguments();

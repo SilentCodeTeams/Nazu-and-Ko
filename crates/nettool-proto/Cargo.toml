@@ -3,4 +3,5 @@ name = "nettool-proto"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "NetTool protocol core: VarInt, Minecraft framing, protocol detection"
+repository.workspace = true
+description = "Nazu&Ko protocol core: VarInt, Minecraft framing, protocol detection"

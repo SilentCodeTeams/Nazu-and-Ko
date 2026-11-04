@@ -19,7 +19,7 @@ Phase 1 is pre-1.0. Only the current main branch receives fixes.
 
 ## Safety boundary
 
-NetTool is a network protocol testing tool for systems you own or are
+Nazu&Ko is a network protocol testing tool for systems you own or are
 explicitly authorized to test. It is not an attack service.
 
 The core does not ship:

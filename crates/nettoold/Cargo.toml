@@ -3,7 +3,8 @@ name = "nettoold"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "NetTool daemon/CLI"
+repository.workspace = true
+description = "Nazu&Ko daemon/CLI"
 
 [[bin]]
 name = "nettoold"

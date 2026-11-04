@@ -388,7 +388,7 @@ QWidget *MainWindow::createTitleBar() {
     });
 
     titleLayout_->addWidget(windowControls_);
-    auto *brand = new QLabel(QStringLiteral("NetTool ζ"), titleBar_);
+    auto *brand = new QLabel(QStringLiteral("Nazu&Ko"), titleBar_);
     brand->setObjectName(QStringLiteral("titleBrand"));
     brand->setAttribute(Qt::WA_TransparentForMouseEvents);
     auto *meta = new QLabel(t("window.subtitle"), titleBar_);

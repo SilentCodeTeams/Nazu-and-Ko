@@ -1,9 +1,11 @@
-# NetTool ζ（简体中文）
+# Nazu&Ko（简体中文）
+
+> We don't sleep because packets never do.
 
 [English](../README.md) | 简体中文
 
-NetTool 是用于网络协议分析与授权安全测试的 Rust 核心。它接替 Python 版
-NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客户端拆成独立进程。
+Nazu&Ko 是用于网络协议分析与授权安全测试的 Rust 核心。它接替 Python 原型，
+做到零外部依赖、跨平台，并且把后台与 UI 客户端拆成独立进程。
 
 ## 状态
 
@@ -15,7 +17,7 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
   JSON lines 鉴权、dry-run MAC 租约。
 - Qt 6 Widgets 客户端：重做 dashboard、key=value 国际化（zh-CN/en）、
   真实 nettoold proxy 输出与数据包行、Repeater/规则/Intruder/Scanner、
-  PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出、代理规则接入和本地 Web 仪表盘。
+  PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出和代理规则接入。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
 - 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
 - 尚未完成：更深的工具选项对齐、daemon proxy session 命令、特权 MAC helper、
@@ -123,6 +125,7 @@ list_leases 和 shutdown；proxy session 命令下一步接入。
     docs/PROCESS-MODEL.md    UI / daemon / 特权 helper、崩溃隔离
     docs/CONTROL-API.md      daemon API 消息模型
     docs/MIGRATION.md        Python -> Rust 映射与阶段
+    docs/ROADMAP.md          产品阶段与平台边界
     docs/PLUGIN-ABI.md       DLL/dylib 插件 C ABI 设计
     docs/AUTHORIZED-USE.md   允许与禁止的使用
     SECURITY.md              漏洞报告与安全边界
@@ -145,21 +148,21 @@ list_leases 和 shutdown；proxy session 命令下一步接入。
 
 ## 安全
 
-NetTool 仅用于自有系统或获得书面授权的测试，不提供隐蔽、规避监控或未经授权
+Nazu&Ko 仅用于自有系统或获得书面授权的测试，不提供隐蔽、规避监控或未经授权
 的远程控制能力。详见 SECURITY.md 和 docs/AUTHORIZED-USE.md。
 
 ## 许可证
 
-Apache-2.0。见 LICENSE。
+AGPL-3.0-or-later。见 LICENSE 与 NOTICE。
 
 ---
 
 本项目由 SilentCodeTeams 监管与负责。
 本项目由 SilentCodeTeams 对法律、版权事宜及相关咨询承担责任。
 版权所有 © SilentCodeTeams。
-保留所有权利。
+以 AGPL-3.0-or-later 授权。
 
 This project is supervised and administered by SilentCodeTeams.
 This project is covered by SilentCodeTeams, which assumes responsibility for legal and copyright matters and related inquiries.
 Copyright © SilentCodeTeams.
-All rights reserved.
+Licensed under AGPL-3.0-or-later.

@@ -1,7 +1,7 @@
-# NetTool ζ — English
+# Nazu&Ko — English
 # Format: key=value; lines starting with # are comments; \n is a newline.
-app.name=NetTool ζ
-app.title=SilentStudio© NetTool ζ - Ultimate Protocol Security Testing Platform
+app.name=Nazu&Ko
+app.title=Nazu&Ko - Ultimate Protocol Security Testing Platform
 
 menu.file=File
 menu.export=Export packets
@@ -153,10 +153,10 @@ notification.animation.slide=Slide
 notification.animation.pop=Pop
 notification.animation.bounce=Bounce
 dialog.settings.saved=Settings saved
-dialog.about.title=About NetTool ζ
-dialog.about.body=SilentStudio© NetTool ζ\nUltimate Protocol Security Testing Platform\n\nQt 6 Widgets client
+dialog.about.title=About Nazu&Ko
+dialog.about.body=Nazu&Ko\nUltimate Protocol Security Testing Platform\n\nQt 6 Widgets client
 dialog.tutorial.title=Tutorial
-dialog.tutorial.body=NetTool ζ core features:\n1. Proxy: intercept and forward Minecraft protocol packets\n2. Repeater: replay HTTP requests\n3. Intruder: batch testing\n4. Scanner: vulnerability scanning\n5. Rules: filter and transform packets\n6. Web dashboard: remote monitoring (port 2679)
+dialog.tutorial.body=Nazu&Ko core features:\n1. Proxy: intercept and forward Minecraft protocol packets\n2. Repeater: replay HTTP requests\n3. Intruder: batch testing\n4. Scanner: vulnerability scanning\n5. Rules: filter and transform packets
 
 common.close=Close
 tools.invalidUrl=Enter a valid URL.
@@ -233,7 +233,7 @@ notification.proxyStopped=Proxy stopped
 notification.settingsSaved=Settings saved
 notification.exportSaved=Packets exported
 
-web.title=NetTool ζ · Local dashboard
+web.title=Nazu&Ko · Local dashboard
 web.subtitle=Live proxy state and recent packets.
 web.proxy=Proxy
 web.sessions=Sessions
@@ -242,7 +242,7 @@ web.recent=Recent packets
 web.empty=No packets yet.
 web.running=Running
 web.offline=Offline
-web.footer=NetTool ζ · loopback only
+web.footer=Nazu&Ko · loopback only
 
 v2.brandSub=LOCAL CONSOLE
 v2.status.offline=● Proxy offline

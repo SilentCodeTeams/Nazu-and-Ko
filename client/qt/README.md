@@ -1,4 +1,4 @@
-# NetTool ζ Qt client
+# Nazu&Ko Qt client
 
 A Qt 6 Widgets port of the legacy PySide6 application. The target is a 1:1
 port, done in slices so each slice can be built and inspected.

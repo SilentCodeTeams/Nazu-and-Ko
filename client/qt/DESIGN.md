@@ -1,4 +1,4 @@
-# NetTool ζ Qt — design notes
+# Nazu&Ko Qt — design notes
 
 The legacy PySide6 screen was a faithful functional port, but it had no visual
 hierarchy: a large empty centre, a flat toolbar, and status information mixed

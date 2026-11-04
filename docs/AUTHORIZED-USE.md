@@ -1,6 +1,6 @@
 # Authorized use
 
-NetTool is a protocol analysis and testing toolkit. It is built for:
+Nazu&Ko is a protocol analysis and testing toolkit. It is built for:
 
 - your own devices and lab networks
 - security assessments with written authorization from the network owner

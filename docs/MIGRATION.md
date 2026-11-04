@@ -3,19 +3,19 @@
 ## Decisions
 
 - Rust-first; C only for OS shims.
-- Apache-2.0.
+- AGPL-3.0-or-later.
 - Qt 6 Widgets client, a separate process, over a daemon API.
 - UI and backend are separate processes. The Qt client never links the core;
   a UI crash or restart does not stop capture, proxy sessions or MAC leases.
 - MAC identity is owned by a privileged helper service, not by the UI and not
   by the daemon. Leases are released only by an explicit user command or an
   explicit helper shutdown, and every change is audited.
-- Python web dashboard is not ported into the core.
+- Python web dashboard is removed, not ported into the core.
 - Python code is frozen as a reference implementation.
 
 ## Mapping
 
-    Python (NetTool delta)              Rust (net2)
+    Python (legacy prototype)           Rust (Nazu-and-Ko)
     ----------------------------------  --------------------------------------
     VarIntCodec                         nettool-proto::varint
     MinecraftPacketParser + chunk table nettool-proto::mc (framing first)
@@ -26,7 +26,7 @@
     pcap + console side effects         PacketEvent + EventSink
     SmartExportDialog (GUI)             nettoold analyze (offline CLI)
     Intruder / Scanner dialogs          future: Rust engine + UI client
-    Web dashboard                       future: daemon API + client
+    Web dashboard                       removed; no web UI
     GUI state tied to the process       Qt client over daemon API
     MAC change in the UI process        nettool-macd helper service + leases
     Utils/project, nbt_editor           future: data model / editor plugin

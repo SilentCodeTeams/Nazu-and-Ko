@@ -3,7 +3,8 @@ name = "nettool-capture"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
-description = "NetTool capture: real pcap read/write and TCP frame construction"
+repository.workspace = true
+description = "Nazu&Ko capture: real pcap read/write and TCP frame construction"
 
 [dependencies]
 nettool-proto = { path = "../nettool-proto" }

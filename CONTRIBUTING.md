@@ -1,6 +1,6 @@
-# Contributing to NetTool ζ
+# Contributing to Nazu&Ko
 
-Thanks for your interest. NetTool welcomes issues and pull requests.
+Thanks for your interest. Nazu&Ko welcomes issues and pull requests.
 
 ## Ground rules
 
@@ -14,9 +14,9 @@ Thanks for your interest. NetTool welcomes issues and pull requests.
       cargo fmt --all -- --check
       cargo clippy --workspace --all-targets -- -D warnings
       cargo test --workspace
-- Security-sensitive changes need prior discussion. NetTool is for authorized
+- Security-sensitive changes need prior discussion. Nazu&Ko is for authorized
   testing only; do not add stealth, evasion, or unauthorized control features.
-- By contributing you agree your changes are licensed under Apache-2.0.
+- By contributing you agree your changes are licensed under AGPL-3.0-or-later.
 
 ## Workflow
 

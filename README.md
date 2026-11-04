@@ -1,11 +1,12 @@
-# NetTool ζ
+# Nazu&Ko
+
+> We don't sleep because packets never do.
 
 English | [简体中文](language/README.zh-CN.md)
 
-NetTool is the Rust core for network protocol analysis and authorized security
-testing. It succeeds the Python NetTool prototype with a dependency-free,
-cross-platform implementation and a clean process boundary between the backend
-and UI clients.
+Nazu&Ko is the Rust core for network protocol analysis and authorized security
+testing. It succeeds the Python prototype with a dependency-free, cross-platform
+implementation and a clean process boundary between the backend and UI clients.
 
 ## Status
 
@@ -17,8 +18,8 @@ and UI clients.
   JSON-lines authentication and dry-run MAC leases.
 - Qt 6 Widgets client: redesigned dashboard, key=value i18n (zh-CN/en), live
   `nettoold proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
-  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export, proxy
-  rule wiring and a loopback web dashboard.
+  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export and proxy
+  rule wiring.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
 - 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
 - Not yet: deeper legacy tool-option parity, daemon proxy-session commands,
@@ -128,6 +129,7 @@ Example output:
     docs/PROCESS-MODEL.md    UI / daemon / privileged helper, crash isolation
     docs/CONTROL-API.md      daemon API message model
     docs/MIGRATION.md        Python -> Rust mapping and phases
+    docs/ROADMAP.md          Product phases and platform boundaries
     docs/PLUGIN-ABI.md       C ABI design for DLL/dylib plugins
     docs/AUTHORIZED-USE.md   allowed and prohibited use
     SECURITY.md              vulnerability reporting and safety boundary
@@ -151,22 +153,22 @@ overwrite another contributor's work. Never force-push to main.
 
 ## Security
 
-NetTool is for systems you own or are explicitly authorized to test. It does
+Nazu&Ko is for systems you own or are explicitly authorized to test. It does
 not ship stealth, evasion or unauthorized remote-control features. See
 SECURITY.md and docs/AUTHORIZED-USE.md.
 
 ## License
 
-Apache-2.0. See LICENSE.
+AGPL-3.0-or-later. See LICENSE and NOTICE.
 
 ---
 
-本项目由 SilentCodeTeams 监管与负责。
-本项目由 SilentCodeTeams 对法律、版权事宜及相关咨询承担责任。
-版权所有 © SilentCodeTeams。
-保留所有权利。
+本项目由 SilentStudio 监管与负责。
+本项目由 SilentStudio 对法律、版权事宜及相关咨询承担责任。
+版权所有 © SilentStudio。
+以 AGPL-3.0-or-later 授权。
 
-This project is supervised and administered by SilentCodeTeams.
-This project is covered by SilentCodeTeams, which assumes responsibility for legal and copyright matters and related inquiries.
-Copyright © SilentCodeTeams.
-All rights reserved.
+This project is supervised and administered by SilentStudio.
+This project is covered by SilentStudio, which assumes responsibility for legal and copyright matters and related inquiries.
+Copyright © SilentStudio.
+Licensed under AGPL-3.0-or-later.
