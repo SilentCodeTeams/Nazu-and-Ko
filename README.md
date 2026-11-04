@@ -157,12 +157,12 @@ AGPL-3.0-or-later。见 LICENSE 与 NOTICE。
 
 ---
 
-本项目由 SilentCodeTeams 监管与负责。
-本项目由 SilentCodeTeams 对法律、版权事宜及相关咨询承担责任。
-版权所有 © SilentCodeTeams。
+本项目由 SilentStudio 监管与负责。
+本项目由 SilentStudio 对法律、版权事宜及相关咨询承担责任。
+版权所有 © SilentStudio。
 以 AGPL-3.0-or-later 授权。
 
-This project is supervised and administered by SilentCodeTeams.
-This project is covered by SilentCodeTeams, which assumes responsibility for legal and copyright matters and related inquiries.
-Copyright © SilentCodeTeams.
+This project is supervised and administered by SilentStudio.
+This project is covered by SilentStudio, which assumes responsibility for legal and copyright matters and related inquiries.
+Copyright © SilentStudio.
 Licensed under AGPL-3.0-or-later.
