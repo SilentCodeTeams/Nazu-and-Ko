@@ -26,7 +26,7 @@
 
 namespace {
 
-QString tr(const QString &key) {
+QString translate(const QString &key) {
     return Translator::instance().text(key);
 }
 
@@ -52,7 +52,7 @@ QPushButton *primaryButton(const QString &text, QWidget *parent) {
 
 void addCloseButton(QVBoxLayout *layout, QDialog *dialog) {
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close, dialog);
-    buttons->button(QDialogButtonBox::Close)->setText(tr("common.close"));
+    buttons->button(QDialogButtonBox::Close)->setText(translate("common.close"));
     QObject::connect(buttons, &QDialogButtonBox::rejected, dialog, &QDialog::reject);
     layout->addWidget(buttons);
 }
@@ -81,7 +81,7 @@ QString httpStatus(QNetworkReply *reply) {
 } // namespace
 
 RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle(tr("tools.repeater.title"));
+    setWindowTitle(translate("tools.repeater.title"));
     resize(820, 620);
 
     auto *layout = new QVBoxLayout(this);
@@ -91,8 +91,8 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
                        QStringLiteral("DELETE")});
     method_->setMinimumWidth(90);
     url_ = new QLineEdit(this);
-    url_->setPlaceholderText(tr("tools.repeater.urlPlaceholder"));
-    send_ = primaryButton(tr("tools.repeater.send"), this);
+    url_->setPlaceholderText(translate("tools.repeater.urlPlaceholder"));
+    send_ = primaryButton(translate("tools.repeater.send"), this);
     connect(send_, &QPushButton::clicked, this, &RepeaterDialog::sendRequest);
     top->addWidget(method_);
     top->addWidget(url_, 1);
@@ -103,13 +103,13 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
     auto *request = new QWidget(splitter);
     auto *requestLayout = new QVBoxLayout(request);
     requestLayout->setContentsMargins(0, 0, 0, 0);
-    auto *headersLabel = new QLabel(tr("tools.repeater.headers"), request);
+    auto *headersLabel = new QLabel(translate("tools.repeater.headers"), request);
     headersLabel->setObjectName(QStringLiteral("sectionTitle"));
-    headers_ = editor(request, tr("tools.repeater.headersPlaceholder"));
+    headers_ = editor(request, translate("tools.repeater.headersPlaceholder"));
     headers_->setMaximumHeight(90);
-    auto *bodyLabel = new QLabel(tr("tools.repeater.body"), request);
+    auto *bodyLabel = new QLabel(translate("tools.repeater.body"), request);
     bodyLabel->setObjectName(QStringLiteral("sectionTitle"));
-    body_ = editor(request, tr("tools.repeater.bodyPlaceholder"));
+    body_ = editor(request, translate("tools.repeater.bodyPlaceholder"));
     requestLayout->addWidget(headersLabel);
     requestLayout->addWidget(headers_);
     requestLayout->addWidget(bodyLabel);
@@ -118,9 +118,9 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
     auto *responsePanel = new QWidget(splitter);
     auto *responseLayout = new QVBoxLayout(responsePanel);
     responseLayout->setContentsMargins(0, 0, 0, 0);
-    status_ = new QLabel(tr("tools.repeater.ready"), responsePanel);
+    status_ = new QLabel(translate("tools.repeater.ready"), responsePanel);
     status_->setObjectName(QStringLiteral("muted"));
-    response_ = editor(responsePanel, tr("tools.repeater.responsePlaceholder"));
+    response_ = editor(responsePanel, translate("tools.repeater.responsePlaceholder"));
     response_->setReadOnly(true);
     responseLayout->addWidget(status_);
     responseLayout->addWidget(response_, 1);
@@ -139,7 +139,7 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
 void RepeaterDialog::sendRequest() {
     const QUrl url = QUrl::fromUserInput(url_->text().trimmed());
     if (!url.isValid() || url.scheme().isEmpty()) {
-        status_->setText(tr("tools.invalidUrl"));
+        status_->setText(translate("tools.invalidUrl"));
         return;
     }
 
@@ -170,7 +170,7 @@ void RepeaterDialog::sendRequest() {
         manager_->sendCustomRequest(request, "DELETE", payload);
     }
     send_->setEnabled(false);
-    status_->setText(tr("tools.sending"));
+    status_->setText(translate("tools.sending"));
 }
 
 void RepeaterDialog::onFinished(QNetworkReply *reply) {
@@ -188,14 +188,14 @@ void RepeaterDialog::onFinished(QNetworkReply *reply) {
 }
 
 RuleManagerDialog::RuleManagerDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle(tr("tools.rules.title"));
+    setWindowTitle(translate("tools.rules.title"));
     resize(780, 520);
 
     auto *layout = new QVBoxLayout(this);
     table_ = new QTableWidget(this);
     table_->setColumnCount(3);
     table_->setHorizontalHeaderLabels(
-        {tr("tools.rules.name"), tr("tools.rules.expression"), tr("tools.rules.action")});
+        {translate("tools.rules.name"), translate("tools.rules.expression"), translate("tools.rules.action")});
     table_->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     table_->verticalHeader()->setVisible(false);
     table_->setAlternatingRowColors(true);
@@ -203,10 +203,10 @@ RuleManagerDialog::RuleManagerDialog(QWidget *parent) : QDialog(parent) {
     layout->addWidget(table_, 1);
 
     auto *actions = new QHBoxLayout();
-    auto *add = new QPushButton(tr("tools.rules.add"), this);
-    auto *remove = new QPushButton(tr("tools.rules.remove"), this);
-    auto *save = primaryButton(tr("button.save"), this);
-    auto *close = new QPushButton(tr("common.close"), this);
+    auto *add = new QPushButton(translate("tools.rules.add"), this);
+    auto *remove = new QPushButton(translate("tools.rules.remove"), this);
+    auto *save = primaryButton(translate("button.save"), this);
+    auto *close = new QPushButton(translate("common.close"), this);
     connect(add, &QPushButton::clicked, this, &RuleManagerDialog::addRule);
     connect(remove, &QPushButton::clicked, this, &RuleManagerDialog::removeRule);
     connect(save, &QPushButton::clicked, this, &RuleManagerDialog::saveRules);
@@ -263,30 +263,30 @@ void RuleManagerDialog::saveRules() {
 }
 
 IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle(tr("tools.intruder.title"));
+    setWindowTitle(translate("tools.intruder.title"));
     resize(780, 600);
 
     auto *layout = new QVBoxLayout(this);
     auto *urlRow = new QHBoxLayout();
     url_ = new QLineEdit(this);
-    url_->setPlaceholderText(tr("tools.intruder.urlPlaceholder"));
-    start_ = primaryButton(tr("tools.intruder.start"), this);
+    url_->setPlaceholderText(translate("tools.intruder.urlPlaceholder"));
+    start_ = primaryButton(translate("tools.intruder.start"), this);
     connect(start_, &QPushButton::clicked, this, &IntruderDialog::start);
     urlRow->addWidget(url_, 1);
     urlRow->addWidget(start_);
     layout->addLayout(urlRow);
 
-    auto *payloadLabel = new QLabel(tr("tools.intruder.payloads"), this);
+    auto *payloadLabel = new QLabel(translate("tools.intruder.payloads"), this);
     payloadLabel->setObjectName(QStringLiteral("sectionTitle"));
-    payloads_ = editor(this, tr("tools.intruder.payloadsPlaceholder"));
+    payloads_ = editor(this, translate("tools.intruder.payloadsPlaceholder"));
     payloads_->setMaximumHeight(110);
     layout->addWidget(payloadLabel);
     layout->addWidget(payloads_);
 
-    results_ = resultTable(this, {tr("tools.intruder.payload"), tr("tools.intruder.status"),
-                                  tr("tools.intruder.length")});
+    results_ = resultTable(this, {translate("tools.intruder.payload"), translate("tools.intruder.status"),
+                                  translate("tools.intruder.length")});
     layout->addWidget(results_, 1);
-    status_ = new QLabel(tr("tools.intruder.ready"), this);
+    status_ = new QLabel(translate("tools.intruder.ready"), this);
     status_->setObjectName(QStringLiteral("muted"));
     layout->addWidget(status_);
     addCloseButton(layout, this);
@@ -299,7 +299,7 @@ void IntruderDialog::start() {
         return;
     }
     if (!url_->text().contains(QStringLiteral("FUZZ"))) {
-        status_->setText(tr("tools.intruder.marker"));
+        status_->setText(translate("tools.intruder.marker"));
         return;
     }
     queue_ = payloads_->toPlainText().split(QLatin1Char('\n'), Qt::SkipEmptyParts);
@@ -308,7 +308,7 @@ void IntruderDialog::start() {
     }
     queue_.removeAll(QString());
     if (queue_.isEmpty()) {
-        status_->setText(tr("tools.intruder.noPayloads"));
+        status_->setText(translate("tools.intruder.noPayloads"));
         return;
     }
     results_->setRowCount(0);
@@ -328,7 +328,7 @@ void IntruderDialog::sendNext() {
     QNetworkRequest request(QUrl::fromUserInput(url_->text().replace(QStringLiteral("FUZZ"), encoded)));
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
     QNetworkReply *reply = manager_->get(request);
-    status_->setText(tr("tools.intruder.progress").arg(index_).arg(queue_.size()));
+    status_->setText(translate("tools.intruder.progress").arg(index_).arg(queue_.size()));
     connect(reply, &QNetworkReply::finished, this, [this, reply, payload] {
         const int row = results_->rowCount();
         results_->insertRow(row);
@@ -343,34 +343,34 @@ void IntruderDialog::sendNext() {
 void IntruderDialog::finishRun() {
     running_ = false;
     start_->setEnabled(true);
-    status_->setText(tr("tools.intruder.done").arg(queue_.size()));
+    status_->setText(translate("tools.intruder.done").arg(queue_.size()));
 }
 
 ScannerDialog::ScannerDialog(QWidget *parent) : QDialog(parent) {
-    setWindowTitle(tr("tools.scanner.title"));
+    setWindowTitle(translate("tools.scanner.title"));
     resize(760, 580);
 
     auto *layout = new QVBoxLayout(this);
     auto *urlRow = new QHBoxLayout();
     baseUrl_ = new QLineEdit(this);
-    baseUrl_->setPlaceholderText(tr("tools.scanner.basePlaceholder"));
-    start_ = primaryButton(tr("tools.scanner.start"), this);
+    baseUrl_->setPlaceholderText(translate("tools.scanner.basePlaceholder"));
+    start_ = primaryButton(translate("tools.scanner.start"), this);
     connect(start_, &QPushButton::clicked, this, &ScannerDialog::start);
     urlRow->addWidget(baseUrl_, 1);
     urlRow->addWidget(start_);
     layout->addLayout(urlRow);
 
-    auto *pathsLabel = new QLabel(tr("tools.scanner.paths"), this);
+    auto *pathsLabel = new QLabel(translate("tools.scanner.paths"), this);
     pathsLabel->setObjectName(QStringLiteral("sectionTitle"));
-    paths_ = editor(this, tr("tools.scanner.pathsPlaceholder"));
+    paths_ = editor(this, translate("tools.scanner.pathsPlaceholder"));
     paths_->setMaximumHeight(110);
     layout->addWidget(pathsLabel);
     layout->addWidget(paths_);
 
-    results_ = resultTable(this, {tr("tools.scanner.path"), tr("tools.scanner.status"),
-                                  tr("tools.scanner.length")});
+    results_ = resultTable(this, {translate("tools.scanner.path"), translate("tools.scanner.status"),
+                                  translate("tools.scanner.length")});
     layout->addWidget(results_, 1);
-    status_ = new QLabel(tr("tools.scanner.ready"), this);
+    status_ = new QLabel(translate("tools.scanner.ready"), this);
     status_->setObjectName(QStringLiteral("muted"));
     layout->addWidget(status_);
     addCloseButton(layout, this);
@@ -384,7 +384,7 @@ void ScannerDialog::start() {
     }
     const QUrl base = QUrl::fromUserInput(baseUrl_->text().trimmed());
     if (!base.isValid() || base.scheme().isEmpty()) {
-        status_->setText(tr("tools.invalidUrl"));
+        status_->setText(translate("tools.invalidUrl"));
         return;
     }
     queue_ = paths_->toPlainText().split(QLatin1Char('\n'), Qt::SkipEmptyParts);
@@ -393,7 +393,7 @@ void ScannerDialog::start() {
     }
     queue_.removeAll(QString());
     if (queue_.isEmpty()) {
-        status_->setText(tr("tools.scanner.noPaths"));
+        status_->setText(translate("tools.scanner.noPaths"));
         return;
     }
     results_->setRowCount(0);
@@ -415,7 +415,7 @@ void ScannerDialog::sendNext() {
     QNetworkRequest request(target);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
     QNetworkReply *reply = manager_->get(request);
-    status_->setText(tr("tools.scanner.progress").arg(index_).arg(queue_.size()));
+    status_->setText(translate("tools.scanner.progress").arg(index_).arg(queue_.size()));
     connect(reply, &QNetworkReply::finished, this, [this, reply, path] {
         const int row = results_->rowCount();
         results_->insertRow(row);
@@ -430,5 +430,5 @@ void ScannerDialog::sendNext() {
 void ScannerDialog::finishRun() {
     running_ = false;
     start_->setEnabled(true);
-    status_->setText(tr("tools.scanner.done").arg(queue_.size()));
+    status_->setText(translate("tools.scanner.done").arg(queue_.size()));
 }

@@ -9,7 +9,8 @@ class QDockWidget;
 class QFrame;
 class QLabel;
 class QLineEdit;
-class QPlainTextEdit;
+class NotificationCenter;
+class PacketEditor;
 class QPoint;
 class QProcess;
 class QPushButton;
@@ -68,8 +69,8 @@ private:
     QDockWidget *packetDock_ = nullptr;
     QDockWidget *requestDock_ = nullptr;
     QDockWidget *responseDock_ = nullptr;
-    QPlainTextEdit *requestEditor_ = nullptr;
-    QPlainTextEdit *responseEditor_ = nullptr;
+    PacketEditor *requestEditor_ = nullptr;
+    PacketEditor *responseEditor_ = nullptr;
     QLineEdit *filterInput_ = nullptr;
     QComboBox *themeCombo_ = nullptr;
     QAction *startAction_ = nullptr;
@@ -86,6 +87,7 @@ private:
     QLabel *packetCardValue_ = nullptr;
     QPushButton *primaryStartButton_ = nullptr;
     QProcess *proxyProcess_ = nullptr;
+    NotificationCenter *notifications_ = nullptr;
     bool proxyRunning_ = false;
 
     QString theme_ = QStringLiteral("system");

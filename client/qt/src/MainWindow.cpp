@@ -1,6 +1,8 @@
 #include "MainWindow.h"
 
 #include "Dialogs.h"
+#include "NotificationCenter.h"
+#include "PacketEditor.h"
 #include "Tools.h"
 #include "Translator.h"
 
@@ -21,6 +23,9 @@
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QHBoxLayout>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QHeaderView>
 #include <QKeySequence>
 #include <QLabel>
@@ -168,15 +173,6 @@ QTabWidget::pane { border: 1px solid #232B36; border-radius: 8px; background: #1
 )STYLE");
 }
 
-QPlainTextEdit *createPacketViewer(QWidget *parent, const QString &placeholder) {
-    auto *viewer = new QPlainTextEdit(parent);
-    QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
-    font.setPointSize(11);
-    viewer->setFont(font);
-    viewer->setPlaceholderText(placeholder);
-    return viewer;
-}
-
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
@@ -186,6 +182,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
 
     QSettings settings;
     theme_ = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
+    notifications_ = new NotificationCenter(this);
 
     createMenus();
     createToolBar();
@@ -379,13 +376,15 @@ void MainWindow::createDocks() {
 
     requestDock_ = new QDockWidget(t("inspector.requestTitle"), this);
     requestDock_->setObjectName(QStringLiteral("request_dock"));
-    requestEditor_ = createPacketViewer(this, t("inspector.requestPlaceholder"));
+    requestEditor_ = new PacketEditor(this);
+    requestEditor_->setPlaceholderText(t("inspector.requestPlaceholder"));
     requestDock_->setWidget(requestEditor_);
     addDockWidget(Qt::RightDockWidgetArea, requestDock_);
 
     responseDock_ = new QDockWidget(t("inspector.responseTitle"), this);
     responseDock_->setObjectName(QStringLiteral("response_dock"));
-    responseEditor_ = createPacketViewer(this, t("inspector.responsePlaceholder"));
+    responseEditor_ = new PacketEditor(this);
+    responseEditor_->setPlaceholderText(t("inspector.responsePlaceholder"));
     responseDock_->setWidget(responseEditor_);
     addDockWidget(Qt::RightDockWidgetArea, responseDock_);
 
@@ -617,6 +616,9 @@ void MainWindow::addPacketLine(const QString &line) {
         item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
         packetTable_->setItem(row, column, item);
     }
+    if (QTableWidgetItem *summaryItem = packetTable_->item(row, 5)) {
+        summaryItem->setData(Qt::UserRole, line.toUtf8());
+    }
     packetTable_->scrollToBottom();
     if (emptyHint_) {
         emptyHint_->hide();
@@ -636,6 +638,7 @@ void MainWindow::startProxy() {
     const QString binary = findProxyBinary();
     if (binary.isEmpty()) {
         QMessageBox::warning(this, t("menu.startProxy"), t("status.proxyBinaryMissing"));
+        notifications_->show(t("status.proxyBinaryMissing"), NotificationCenter::Level::Error);
         return;
     }
 
@@ -670,21 +673,40 @@ void MainWindow::startProxy() {
                 }
             });
 
-    const QStringList arguments = {
+    QStringList arguments = {
         QStringLiteral("proxy"),
         QStringLiteral("--listen"), QStringLiteral("127.0.0.1:%1").arg(listenPort),
         QStringLiteral("--target"), QStringLiteral("%1:%2").arg(targetHost).arg(targetPort),
         QStringLiteral("--protocol"), protocol,
     };
+    const QStringList savedRules = settings.value(QStringLiteral("rules/items")).toStringList();
+    for (const QString &line : savedRules) {
+        const QStringList parts = line.split(QLatin1Char('\t'));
+        if (parts.size() < 2) {
+            continue;
+        }
+        QString expression = parts.at(1).trimmed();
+        const QString action = parts.size() > 2 ? parts.at(2).trimmed() : QString();
+        if (expression.isEmpty()) {
+            continue;
+        }
+        if (!expression.startsWith(QStringLiteral("drop ")) &&
+            !expression.startsWith(QStringLiteral("allow ")) && !action.isEmpty()) {
+            expression = action + QLatin1Char(' ') + expression;
+        }
+        arguments << QStringLiteral("--rule") << expression;
+    }
     proxyProcess_->start(binary, arguments);
     if (!proxyProcess_->waitForStarted(3000)) {
-        QMessageBox::warning(this, t("menu.startProxy"),
-                             t("status.proxyStartFailed").arg(proxyProcess_->errorString()));
+        const QString error = t("status.proxyStartFailed").arg(proxyProcess_->errorString());
+        QMessageBox::warning(this, t("menu.startProxy"), error);
+        notifications_->show(error, NotificationCenter::Level::Error);
         proxyProcess_->deleteLater();
         proxyProcess_ = nullptr;
         return;
     }
     setProxyRunning(true);
+    notifications_->show(t("notification.proxyStarted"), NotificationCenter::Level::Success);
 }
 
 void MainWindow::stopProxy() {
@@ -702,6 +724,7 @@ void MainWindow::stopProxy() {
         }
     }
     setProxyRunning(false);
+    notifications_->show(t("notification.proxyStopped"), NotificationCenter::Level::Info);
 }
 
 void MainWindow::clearPackets() {
@@ -725,9 +748,21 @@ void MainWindow::exportPackets() {
         return;
     }
 
+    SmartExportDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const QString format = dialog.format();
+    const bool visibleOnly = dialog.visibleOnly();
+    const QString defaultName = QStringLiteral("packets.") + format;
+    QString filter = t("dialog.export.filter");
+    if (format == QStringLiteral("json")) {
+        filter = t("dialog.export.filterJson");
+    } else if (format == QStringLiteral("tsv")) {
+        filter = t("dialog.export.filterTsv");
+    }
     const QString path = QFileDialog::getSaveFileName(
-        this, t("dialog.export.title"), QStringLiteral("packets.csv"),
-        t("dialog.export.filter"));
+        this, t("dialog.export.title"), defaultName, filter);
     if (path.isEmpty()) {
         return;
     }
@@ -737,22 +772,64 @@ void MainWindow::exportPackets() {
         QMessageBox::warning(this, t("dialog.export.title"), t("dialog.export.error"));
         return;
     }
-    QTextStream stream(&file);
-    stream.setEncoding(QStringConverter::Utf8);
-    stream << "id,time,direction,length,status,summary\n";
-    for (int row = 0; row < packetTable_->rowCount(); ++row) {
+
+    const auto cellText = [this](int row, int column) {
+        const QTableWidgetItem *item = packetTable_->item(row, column);
+        return item ? item->text() : QString();
+    };
+    const auto headerText = [this](int column) {
+        const QTableWidgetItem *item = packetTable_->horizontalHeaderItem(column);
+        return item ? item->text() : QString::number(column);
+    };
+    const auto escaped = [](QString text) {
+        text.replace(QLatin1Char('"'), QStringLiteral("\"\""));
+        return text;
+    };
+
+    if (format == QStringLiteral("json")) {
+        QJsonArray rows;
+        for (int row = 0; row < packetTable_->rowCount(); ++row) {
+            if (visibleOnly && packetTable_->isRowHidden(row)) {
+                continue;
+            }
+            QJsonObject object;
+            for (int column = 0; column < packetTable_->columnCount(); ++column) {
+                object.insert(headerText(column), cellText(row, column));
+            }
+            rows.append(object);
+        }
+        const QByteArray json = QJsonDocument(rows).toJson(QJsonDocument::Indented);
+        if (file.write(json) < 0) {
+            QMessageBox::warning(this, t("dialog.export.title"), t("dialog.export.error"));
+            return;
+        }
+    } else {
+        const QChar delimiter = format == QStringLiteral("tsv") ? QLatin1Char('\t') : QLatin1Char(',');
+        QTextStream stream(&file);
+        stream.setEncoding(QStringConverter::Utf8);
         for (int column = 0; column < packetTable_->columnCount(); ++column) {
             if (column > 0) {
-                stream << ',';
+                stream << delimiter;
             }
-            const QTableWidgetItem *item = packetTable_->item(row, column);
-            QString text = item ? item->text() : QString();
-            text.replace('"', QStringLiteral("\"\""));
-            stream << '"' << text << '"';
+            stream << '"' << escaped(headerText(column)) << '"';
         }
         stream << '\n';
+        for (int row = 0; row < packetTable_->rowCount(); ++row) {
+            if (visibleOnly && packetTable_->isRowHidden(row)) {
+                continue;
+            }
+            for (int column = 0; column < packetTable_->columnCount(); ++column) {
+                if (column > 0) {
+                    stream << delimiter;
+                }
+                stream << '"' << escaped(cellText(row, column)) << '"';
+            }
+            stream << '\n';
+        }
     }
+
     statusLabel_->setText(t("status.exported"));
+    notifications_->show(t("notification.exportSaved"), NotificationCenter::Level::Success);
 }
 
 void MainWindow::showProxyConfig() {
@@ -784,6 +861,7 @@ void MainWindow::showProxyConfig() {
                 .arg(next.targetPort));
     }
     statusLabel_->setText(t("dialog.settings.saved"));
+    notifications_->show(t("notification.settingsSaved"), NotificationCenter::Level::Success);
 }
 
 void MainWindow::showRules() {
@@ -816,6 +894,7 @@ void MainWindow::showSettings() {
     font.setPointSize(dialog.selectedFontSize());
     QApplication::setFont(font);
     statusLabel_->setText(t("dialog.settings.saved"));
+    notifications_->show(t("notification.settingsSaved"), NotificationCenter::Level::Success);
 }
 
 void MainWindow::showTutorial() {
@@ -943,13 +1022,15 @@ void MainWindow::showPacketContextMenu(const QPoint &position) {
 void MainWindow::onPacketDoubleClicked(int row, int column) {
     Q_UNUSED(column);
     const QTableWidgetItem *summary = packetTable_->item(row, 5);
-    const QTableWidgetItem *direction = packetTable_->item(row, 2);
-    const QTableWidgetItem *length = packetTable_->item(row, 3);
-    requestEditor_->setPlainText(
-        t("inspector.packet")
-            .arg(direction ? direction->text() : QString(),
-                 length ? length->text() : QString(),
-                 summary ? summary->text() : QString()));
+    QByteArray raw = summary ? summary->data(Qt::UserRole).toByteArray() : QByteArray();
+    if (raw.isEmpty()) {
+        raw = t("inspector.packet")
+                  .arg(packetTable_->item(row, 2) ? packetTable_->item(row, 2)->text() : QString(),
+                       packetTable_->item(row, 3) ? packetTable_->item(row, 3)->text() : QString(),
+                       summary ? summary->text() : QString())
+                  .toUtf8();
+    }
+    requestEditor_->setData(raw);
     responseEditor_->clear();
     requestDock_->raise();
 }

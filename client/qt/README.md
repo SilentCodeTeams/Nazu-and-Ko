@@ -34,13 +34,15 @@ Implemented:
 - Proxy configuration, preferences and language selection
 - Start/stop of the Rust `nettoold proxy` process, with captured packet rows
 - Repeater, Rules, Intruder and Scanner dialogs
+- PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
+- Toast notification centre
+- Smart export in CSV, JSON and TSV, all rows or visible rows
+- Rules saved in the Rules dialog are passed to `nettoold proxy --rule`
 
 Known gaps from full legacy parity:
 
-- PacketEditor tabs with hex/JSON/HTTP highlighting
-- Notification centre and smart export dialog
-- Legacy rule-engine integration on the Qt side
-- Web dashboard
+- Complete tool-option parity (for example Intruder concurrency settings)
+- Legacy web dashboard
 - Additional translations beyond Chinese and English
 
 The tool dialogs are functional Qt ports, not placeholder message boxes. They do

@@ -1,0 +1,80 @@
+#include "NotificationCenter.h"
+
+#include <QFrame>
+#include <QGraphicsOpacityEffect>
+#include <QGuiApplication>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPropertyAnimation>
+#include <QScreen>
+#include <QTimer>
+#include <QWidget>
+
+NotificationCenter::NotificationCenter(QObject *parent) : QObject(parent) {}
+
+void NotificationCenter::show(const QString &message, Level level) {
+    if (active_.size() >= 4) {
+        active_.first()->close();
+    }
+
+    auto *toast = new QFrame;
+    toast->setObjectName(QStringLiteral("toast"));
+    toast->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+    toast->setAttribute(Qt::WA_ShowWithoutActivating);
+    toast->setAttribute(Qt::WA_DeleteOnClose);
+    toast->setMaximumWidth(380);
+
+    QString background = QStringLiteral("#1F2937");
+    if (level == Level::Success) {
+        background = QStringLiteral("#0F766E");
+    } else if (level == Level::Error) {
+        background = QStringLiteral("#B42318");
+    }
+    toast->setStyleSheet(QStringLiteral(
+        "QFrame#toast { background: %1; border-radius: 10px; }"
+        "QLabel { color: #FFFFFF; font-size: 12px; }")
+                             .arg(background));
+
+    auto *layout = new QHBoxLayout(toast);
+    layout->setContentsMargins(14, 10, 14, 10);
+    auto *label = new QLabel(message, toast);
+    label->setWordWrap(true);
+    layout->addWidget(label);
+
+    auto *effect = new QGraphicsOpacityEffect(toast);
+    toast->setGraphicsEffect(effect);
+    auto *animation = new QPropertyAnimation(effect, "opacity", toast);
+    animation->setDuration(180);
+    animation->setStartValue(0.0);
+    animation->setEndValue(1.0);
+    animation->start(QAbstractAnimation::DeleteWhenStopped);
+
+    active_.append(toast);
+    toast->adjustSize();
+    reposition();
+    toast->show();
+    toast->raise();
+
+    connect(toast, &QObject::destroyed, this, [this, toast] {
+        active_.removeAll(toast);
+        reposition();
+    });
+    QTimer::singleShot(3200, toast, &QWidget::close);
+}
+
+void NotificationCenter::reposition() {
+    QScreen *screen = QGuiApplication::primaryScreen();
+    if (!screen) {
+        return;
+    }
+    const QRect area = screen->availableGeometry();
+    int bottom = area.bottom() - 24;
+    for (int index = active_.size() - 1; index >= 0; --index) {
+        QWidget *toast = active_.at(index);
+        toast->adjustSize();
+        const int x = area.right() - toast->width() - 24;
+        const int y = bottom - toast->height();
+        toast->move(qMax(area.left() + 8, x), qMax(area.top() + 8, y));
+        bottom = y - 8;
+    }
+}

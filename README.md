@@ -16,14 +16,14 @@ and UI clients.
 - Phase 2 daemon control server MVP: loopback TCP, 0600 token state file,
   JSON-lines authentication and dry-run MAC leases.
 - Qt 6 Widgets client: redesigned dashboard, key=value i18n (zh-CN/en), live
-  `nettoold proxy` output with packet rows, and functional Repeater/Rules/
-  Intruder/Scanner dialogs.
+  `nettoold proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
+  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export and proxy
+  rule wiring.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
 - 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: Qt PacketEditor tabs, notification centre and smart export, full
-  legacy tool parity, daemon proxy-session commands, privileged MAC helper,
-  TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login
-  state, plugin runtime.
+- Not yet: full legacy tool-option parity, Qt web dashboard, daemon
+  proxy-session commands, privileged MAC helper, TLS MITM, HTTP/2 HPACK,
+  HTTP/3 over QUIC, Minecraft compression and login state, plugin runtime.
 
 ## Protocol support
 

@@ -55,6 +55,7 @@ int main(int argc, char *argv[]) {
         RuleManagerDialog rules(&window);
         IntruderDialog intruder(&window);
         ScannerDialog scanner(&window);
+        SmartExportDialog exportDialog(&window);
         QTimer::singleShot(200, &app, &QCoreApplication::quit);
     } else if (arguments.contains(QStringLiteral("--smoke-test"))) {
         QTimer::singleShot(200, &app, &QCoreApplication::quit);

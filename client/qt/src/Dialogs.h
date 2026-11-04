@@ -8,6 +8,19 @@ class QComboBox;
 class QLineEdit;
 class QSpinBox;
 
+class SmartExportDialog : public QDialog {
+    Q_OBJECT
+
+public:
+    explicit SmartExportDialog(QWidget *parent = nullptr);
+    QString format() const;
+    bool visibleOnly() const;
+
+private:
+    QComboBox *format_ = nullptr;
+    QComboBox *scope_ = nullptr;
+};
+
 struct ProxySettings {
     int listenPort = 25565;
     QString targetHost = QStringLiteral("localhost");

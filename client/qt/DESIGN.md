@@ -76,8 +76,9 @@ in languages.conf.
 
 Implemented: main window, dashboard, docks, themes, filtering, zoom, proxy
 configuration, preferences, language selection, live output from nettoold proxy,
-packet rows, Repeater, Rules, Intruder and Scanner dialogs.
+packet rows, Repeater, Rules, Intruder and Scanner dialogs, PacketEditor
+Raw/Hex/JSON/HTTP tabs, toast notifications, smart CSV/JSON/TSV export, and
+rules passed to nettoold proxy.
 
-Still to port: PacketEditor tabs with highlighting, notification centre, smart
-export, the legacy rule-engine integration and full tool-option parity. These
-remain functional gaps, not "porting in progress" message boxes.
+Still to port: full tool-option parity and the legacy web dashboard. These remain
+functional gaps, not "porting in progress" message boxes.
