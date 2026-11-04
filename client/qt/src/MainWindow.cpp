@@ -1,16 +1,26 @@
 #include "MainWindow.h"
 
+#include "Dialogs.h"
+#include "Tools.h"
+#include "Translator.h"
+
 #include <QAbstractItemView>
 #include <QAction>
+#include <QActionGroup>
 #include <QApplication>
 #include <QClipboard>
 #include <QComboBox>
+#include <QCoreApplication>
 #include <QDockWidget>
 #include <QFile>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QFont>
 #include <QFontDatabase>
+#include <QFrame>
+#include <QGridLayout>
 #include <QGuiApplication>
+#include <QHBoxLayout>
 #include <QHeaderView>
 #include <QKeySequence>
 #include <QLabel>
@@ -20,216 +30,330 @@
 #include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QPoint>
+#include <QProcess>
+#include <QPushButton>
+#include <QRegularExpression>
+#include <QSettings>
 #include <QSignalBlocker>
+#include <QSizePolicy>
+#include <QStandardPaths>
 #include <QStatusBar>
 #include <QStringConverter>
+#include <QStyle>
 #include <QStyleHints>
 #include <QTableWidget>
 #include <QTableWidgetItem>
 #include <QTextStream>
+#include <QTime>
 #include <QToolBar>
+#include <QVBoxLayout>
 #include <QWheelEvent>
 #include <QWidget>
 
 namespace {
 
-QString darkStyle() {
-    return QStringLiteral(R"STYLE(
-QMainWindow, QDialog { background-color: #1e1e1e; }
-QWidget { background-color: #1e1e1e; color: #d4d4d4; }
-QDockWidget::title { background-color: #2d2d2d; color: #ffffff; padding: 5px; }
-QTableWidget { background-color: #252525; color: #d4d4d4; gridline-color: #3c3c3c; alternate-background-color: #2d2d2d; }
-QTableWidget::item:selected { background-color: #264f78; }
-QHeaderView::section { background-color: #2d2d2d; color: #ffffff; padding: 5px; border: none; }
-QPlainTextEdit, QTextEdit { background-color: #1e1e1e; color: #d4d4d4; border: 1px solid #3c3c3c; }
-QLineEdit { background-color: #3c3c3c; color: #ffffff; border: 1px solid #555; padding: 4px; border-radius: 3px; }
-QLabel { color: #d4d4d4; }
-QMenuBar { background-color: #2d2d2d; color: #ffffff; }
-QMenuBar::item:selected { background-color: #3c3c3c; }
-QMenu { background-color: #2d2d2d; color: #ffffff; border: 1px solid #3c3c3c; }
-QMenu::item:selected { background-color: #3c3c3c; }
-QComboBox { background-color: #3c3c3c; color: #ffffff; border: 1px solid #555; padding: 4px; border-radius: 3px; }
-QComboBox QAbstractItemView { background-color: #2d2d2d; color: #ffffff; selection-background-color: #3c3c3c; }
-QToolBar { background-color: #2d2d2d; border: none; spacing: 3px; }
-QStatusBar { background-color: #2d2d2d; color: #ffffff; }
-QScrollBar:vertical { background-color: #1e1e1e; width: 12px; margin: 0; }
-QScrollBar::handle:vertical { background-color: #3c3c3c; border-radius: 6px; min-height: 20px; }
-)STYLE");
-}
-
 QString lightStyle() {
     return QStringLiteral(R"STYLE(
-QMainWindow, QDialog { background-color: #f0f0f0; }
-QWidget { background-color: #f0f0f0; color: #1e1e1e; }
-QDockWidget::title { background-color: #e0e0e0; color: #1e1e1e; padding: 5px; }
-QTableWidget { background-color: #ffffff; color: #1e1e1e; gridline-color: #d0d0d0; alternate-background-color: #f7f7f7; }
-QTableWidget::item:selected { background-color: #cce8ff; color: #1e1e1e; }
-QHeaderView::section { background-color: #e0e0e0; color: #1e1e1e; padding: 5px; border: none; }
-QPlainTextEdit, QTextEdit { background-color: #ffffff; color: #1e1e1e; border: 1px solid #c0c0c0; }
-QLineEdit { background-color: #ffffff; color: #1e1e1e; border: 1px solid #c0c0c0; padding: 4px; border-radius: 3px; }
-QLabel { color: #1e1e1e; }
-QMenuBar { background-color: #f0f0f0; color: #1e1e1e; }
-QMenuBar::item:selected { background-color: #e0e0e0; }
-QMenu { background-color: #ffffff; color: #1e1e1e; border: 1px solid #c0c0c0; }
-QMenu::item:selected { background-color: #e0e0e0; }
-QComboBox { background-color: #ffffff; color: #1e1e1e; border: 1px solid #c0c0c0; padding: 4px; border-radius: 3px; }
-QComboBox QAbstractItemView { background-color: #ffffff; color: #1e1e1e; selection-background-color: #cce8ff; }
-QToolBar { background-color: #f0f0f0; border: none; spacing: 3px; }
-QStatusBar { background-color: #f0f0f0; color: #1e1e1e; }
-QScrollBar:vertical { background-color: #f0f0f0; width: 12px; margin: 0; }
-QScrollBar::handle:vertical { background-color: #c0c0c0; border-radius: 6px; min-height: 20px; }
+QMainWindow { background: #F5F6F8; }
+QWidget#dashboard { background: #F5F6F8; }
+QWidget { color: #111827; }
+QLabel { background: transparent; }
+QLabel#eyebrow { color: #0F766E; font-size: 10px; font-weight: 700; }
+QLabel#pageTitle { color: #111827; font-size: 24px; font-weight: 700; }
+QLabel#muted, QLabel#metricDetail, QLabel#statusText, QLabel#statusMeta { color: #667085; }
+QLabel#metricLabel { color: #667085; font-size: 11px; font-weight: 600; }
+QLabel#metricValue { color: #111827; font-size: 26px; font-weight: 700; }
+QLabel#sectionTitle { color: #111827; font-size: 14px; font-weight: 700; }
+QLabel#caption { color: #98A2B3; font-size: 10px; }
+QLabel#toolbarLabel { color: #667085; font-size: 11px; }
+QLabel#emptyHint { color: #667085; background: #F9FAFB; border-bottom: 1px solid #E4E7EC; padding: 10px 12px; }
+QLabel#pill { color: #475467; background: #EEF2F6; border: 1px solid #E4E7EC; border-radius: 10px; padding: 3px 9px; font-size: 11px; font-weight: 600; }
+QLabel#pill[state="offline"] { color: #B54708; background: #FFFAEB; border-color: #FEDF89; }
+QLabel#pill[state="online"] { color: #0F766E; background: #F0FDFA; border-color: #99F6E4; }
+QFrame#metricCard, QFrame#panel { background: #FFFFFF; border: 1px solid #E4E7EC; border-radius: 14px; }
+QPushButton#primaryButton { color: #FFFFFF; background: #0F766E; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 600; }
+QPushButton#primaryButton:hover { background: #0D9488; }
+QPushButton#primaryButton:pressed { background: #115E59; }
+QPushButton#ghostButton { color: #0F766E; background: transparent; border: 1px solid #CBD5E1; border-radius: 8px; padding: 7px 12px; font-weight: 600; }
+QPushButton#ghostButton:hover { background: #F0FDFA; border-color: #99F6E4; }
+QTableWidget { background: #FFFFFF; alternate-background-color: #F9FAFB; color: #111827; border: 1px solid #E4E7EC; border-radius: 8px; gridline-color: transparent; selection-background-color: #CCFBF1; selection-color: #111827; }
+QHeaderView::section { background: #FFFFFF; color: #667085; border: none; border-bottom: 1px solid #E4E7EC; padding: 8px 6px; font-weight: 600; }
+QTableWidget::item { padding: 5px; }
+QPlainTextEdit { background: #FFFFFF; color: #111827; border: 1px solid #E4E7EC; border-radius: 8px; padding: 10px; }
+QLineEdit { background: #FFFFFF; color: #111827; border: 1px solid #D0D5DD; border-radius: 7px; padding: 6px 8px; }
+QComboBox { background: #FFFFFF; color: #111827; border: 1px solid #D0D5DD; border-radius: 7px; padding: 5px 8px; }
+QComboBox QAbstractItemView { background: #FFFFFF; color: #111827; selection-background-color: #F0FDFA; }
+QToolBar { background: #FFFFFF; border: none; border-bottom: 1px solid #E4E7EC; spacing: 6px; padding: 5px 8px; }
+QToolButton { color: #344054; background: transparent; border: none; border-radius: 6px; padding: 5px 8px; }
+QToolButton:hover { background: #F2F4F7; }
+QToolButton:pressed { background: #EAECF0; }
+QMenuBar { background: #FFFFFF; color: #344054; border-bottom: 1px solid #E4E7EC; }
+QMenuBar::item { padding: 5px 9px; background: transparent; }
+QMenuBar::item:selected { background: #F2F4F7; }
+QMenu { background: #FFFFFF; color: #111827; border: 1px solid #E4E7EC; padding: 4px; }
+QMenu::item { padding: 6px 22px 6px 10px; border-radius: 4px; }
+QMenu::item:selected { background: #F0FDFA; }
+QStatusBar { background: #FFFFFF; color: #667085; border-top: 1px solid #E4E7EC; }
+QStatusBar::item { border: none; }
+QDockWidget { color: #344054; }
+QDockWidget::title { background: #FFFFFF; color: #344054; padding: 7px 10px; border-bottom: 1px solid #E4E7EC; font-weight: 600; }
+QTabBar::tab { background: #F2F4F7; color: #667085; padding: 6px 12px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px; }
+QTabBar::tab:selected { background: #FFFFFF; color: #111827; border: 1px solid #E4E7EC; border-bottom-color: #FFFFFF; }
+QScrollBar:vertical { background: #F5F6F8; width: 10px; }
+QScrollBar::handle:vertical { background: #D0D5DD; border-radius: 5px; min-height: 24px; }
+QDialog { background: #F5F6F8; }
+QPushButton { background: #FFFFFF; color: #344054; border: 1px solid #D0D5DD; border-radius: 7px; padding: 6px 12px; }
+QPushButton:hover { background: #F9FAFB; }
+QSpinBox { background: #FFFFFF; color: #111827; border: 1px solid #D0D5DD; border-radius: 7px; padding: 4px 6px; }
+QCheckBox { color: #344054; }
+QTabWidget::pane { border: 1px solid #E4E7EC; border-radius: 8px; background: #FFFFFF; }
 )STYLE");
 }
 
-QPlainTextEdit *createPacketViewer(QWidget *parent) {
+QString darkStyle() {
+    return QStringLiteral(R"STYLE(
+QMainWindow { background: #0B0F14; }
+QWidget#dashboard { background: #0B0F14; }
+QWidget { color: #E6EAF0; }
+QLabel { background: transparent; }
+QLabel#eyebrow { color: #2DD4BF; font-size: 10px; font-weight: 700; }
+QLabel#pageTitle { color: #E6EAF0; font-size: 24px; font-weight: 700; }
+QLabel#muted, QLabel#metricDetail, QLabel#statusText, QLabel#statusMeta { color: #8B96A7; }
+QLabel#metricLabel { color: #8B96A7; font-size: 11px; font-weight: 600; }
+QLabel#metricValue { color: #E6EAF0; font-size: 26px; font-weight: 700; }
+QLabel#sectionTitle { color: #E6EAF0; font-size: 14px; font-weight: 700; }
+QLabel#caption { color: #64748B; font-size: 10px; }
+QLabel#toolbarLabel { color: #8B96A7; font-size: 11px; }
+QLabel#emptyHint { color: #8B96A7; background: #0F141B; border-bottom: 1px solid #232B36; padding: 10px 12px; }
+QLabel#pill { color: #A7B3C2; background: #1A2230; border: 1px solid #232B36; border-radius: 10px; padding: 3px 9px; font-size: 11px; font-weight: 600; }
+QLabel#pill[state="offline"] { color: #FDB022; background: #2A2114; border-color: #4E3A1A; }
+QLabel#pill[state="online"] { color: #2DD4BF; background: #0F2A2A; border-color: #134E4A; }
+QFrame#metricCard, QFrame#panel { background: #11161F; border: 1px solid #232B36; border-radius: 14px; }
+QPushButton#primaryButton { color: #042F2E; background: #2DD4BF; border: none; border-radius: 8px; padding: 8px 14px; font-weight: 700; }
+QPushButton#primaryButton:hover { background: #5EEAD4; }
+QPushButton#primaryButton:pressed { background: #14B8A6; }
+QPushButton#ghostButton { color: #5EEAD4; background: transparent; border: 1px solid #334155; border-radius: 8px; padding: 7px 12px; font-weight: 600; }
+QPushButton#ghostButton:hover { background: #0F2A2A; border-color: #2DD4BF; }
+QTableWidget { background: #11161F; alternate-background-color: #0F141B; color: #E6EAF0; border: 1px solid #232B36; border-radius: 8px; gridline-color: transparent; selection-background-color: #134E4A; selection-color: #E6EAF0; }
+QHeaderView::section { background: #11161F; color: #8B96A7; border: none; border-bottom: 1px solid #232B36; padding: 8px 6px; font-weight: 600; }
+QTableWidget::item { padding: 5px; }
+QPlainTextEdit { background: #11161F; color: #E6EAF0; border: 1px solid #232B36; border-radius: 8px; padding: 10px; }
+QLineEdit { background: #11161F; color: #E6EAF0; border: 1px solid #334155; border-radius: 7px; padding: 6px 8px; }
+QComboBox { background: #11161F; color: #E6EAF0; border: 1px solid #334155; border-radius: 7px; padding: 5px 8px; }
+QComboBox QAbstractItemView { background: #11161F; color: #E6EAF0; selection-background-color: #0F2A2A; }
+QToolBar { background: #11161F; border: none; border-bottom: 1px solid #232B36; spacing: 6px; padding: 5px 8px; }
+QToolButton { color: #A7B3C2; background: transparent; border: none; border-radius: 6px; padding: 5px 8px; }
+QToolButton:hover { background: #1A2230; }
+QToolButton:pressed { background: #232B36; }
+QMenuBar { background: #11161F; color: #A7B3C2; border-bottom: 1px solid #232B36; }
+QMenuBar::item { padding: 5px 9px; background: transparent; }
+QMenuBar::item:selected { background: #1A2230; }
+QMenu { background: #11161F; color: #E6EAF0; border: 1px solid #232B36; padding: 4px; }
+QMenu::item { padding: 6px 22px 6px 10px; border-radius: 4px; }
+QMenu::item:selected { background: #0F2A2A; }
+QStatusBar { background: #11161F; color: #8B96A7; border-top: 1px solid #232B36; }
+QStatusBar::item { border: none; }
+QDockWidget { color: #A7B3C2; }
+QDockWidget::title { background: #11161F; color: #A7B3C2; padding: 7px 10px; border-bottom: 1px solid #232B36; font-weight: 600; }
+QTabBar::tab { background: #0F141B; color: #8B96A7; padding: 6px 12px; border-top-left-radius: 6px; border-top-right-radius: 6px; margin-right: 2px; }
+QTabBar::tab:selected { background: #11161F; color: #E6EAF0; border: 1px solid #232B36; border-bottom-color: #11161F; }
+QScrollBar:vertical { background: #0B0F14; width: 10px; }
+QScrollBar::handle:vertical { background: #334155; border-radius: 5px; min-height: 24px; }
+QDialog { background: #0B0F14; }
+QPushButton { background: #11161F; color: #E6EAF0; border: 1px solid #334155; border-radius: 7px; padding: 6px 12px; }
+QPushButton:hover { background: #1A2230; }
+QSpinBox { background: #11161F; color: #E6EAF0; border: 1px solid #334155; border-radius: 7px; padding: 4px 6px; }
+QCheckBox { color: #A7B3C2; }
+QTabWidget::pane { border: 1px solid #232B36; border-radius: 8px; background: #11161F; }
+)STYLE");
+}
+
+QPlainTextEdit *createPacketViewer(QWidget *parent, const QString &placeholder) {
     auto *viewer = new QPlainTextEdit(parent);
     QFont font = QFontDatabase::systemFont(QFontDatabase::FixedFont);
     font.setPointSize(11);
     viewer->setFont(font);
-    viewer->setPlaceholderText(QStringLiteral("数据包内容"));
+    viewer->setPlaceholderText(placeholder);
     return viewer;
 }
 
 } // namespace
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
-    setWindowTitle(QStringLiteral("SilentStudio© NetTool ζ - 终极协议安全测试平台"));
+    setWindowTitle(t("app.title"));
     setGeometry(50, 50, 1400, 900);
     setDockOptions(QMainWindow::AnimatedDocks | QMainWindow::AllowTabbedDocks);
-    setCentralWidget(new QWidget(this));
+
+    QSettings settings;
+    theme_ = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
 
     createMenus();
     createToolBar();
     createDocks();
     createStatusBar();
-    applyTheme(theme_);
+    setCentralWidget(createDashboard());
+    setTheme(theme_);
+}
+
+QString MainWindow::t(const QString &key) const {
+    return Translator::instance().text(key);
 }
 
 void MainWindow::createMenus() {
-    QMenu *fileMenu = menuBar()->addMenu(QStringLiteral("文件"));
-    QAction *exportAction = fileMenu->addAction(QStringLiteral("导出数据包"));
+    QMenu *fileMenu = menuBar()->addMenu(t("menu.file"));
+    QAction *exportAction = fileMenu->addAction(t("menu.export"));
     exportAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+E")));
     connect(exportAction, &QAction::triggered, this, &MainWindow::exportPackets);
-    QAction *clearAction = fileMenu->addAction(QStringLiteral("清空历史"));
+    QAction *clearAction = fileMenu->addAction(t("menu.clear"));
     clearAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+L")));
     connect(clearAction, &QAction::triggered, this, &MainWindow::clearPackets);
     fileMenu->addSeparator();
-    QAction *exitAction = fileMenu->addAction(QStringLiteral("退出"));
+    QAction *exitAction = fileMenu->addAction(t("menu.exit"));
     exitAction->setShortcut(QKeySequence(QStringLiteral("Alt+F4")));
     connect(exitAction, &QAction::triggered, this, &QWidget::close);
 
-    QMenu *proxyMenu = menuBar()->addMenu(QStringLiteral("代理"));
-    startAction_ = proxyMenu->addAction(QStringLiteral("启动代理"));
+    QMenu *proxyMenu = menuBar()->addMenu(t("menu.proxy"));
+    startAction_ = proxyMenu->addAction(t("menu.startProxy"));
     connect(startAction_, &QAction::triggered, this, &MainWindow::startProxy);
-    stopAction_ = proxyMenu->addAction(QStringLiteral("停止代理"));
+    stopAction_ = proxyMenu->addAction(t("menu.stopProxy"));
     stopAction_->setEnabled(false);
     connect(stopAction_, &QAction::triggered, this, &MainWindow::stopProxy);
     proxyMenu->addSeparator();
-    QAction *configAction = proxyMenu->addAction(QStringLiteral("⚙️ 代理配置"));
+    QAction *configAction = proxyMenu->addAction(t("menu.proxyConfig"));
     connect(configAction, &QAction::triggered, this, &MainWindow::showProxyConfig);
-    QAction *rulesAction = proxyMenu->addAction(QStringLiteral("规则管理"));
+    QAction *rulesAction = proxyMenu->addAction(t("menu.rules"));
     connect(rulesAction, &QAction::triggered, this, &MainWindow::showRules);
 
-    QMenu *toolsMenu = menuBar()->addMenu(QStringLiteral("工具"));
-    QAction *repeaterAction = toolsMenu->addAction(QStringLiteral("Repeater"));
+    QMenu *toolsMenu = menuBar()->addMenu(t("menu.tools"));
+    QAction *repeaterAction = toolsMenu->addAction(t("menu.repeater"));
     repeaterAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+R")));
     connect(repeaterAction, &QAction::triggered, this, &MainWindow::showRepeater);
-    QAction *intruderAction = toolsMenu->addAction(QStringLiteral("Intruder"));
+    QAction *intruderAction = toolsMenu->addAction(t("menu.intruder"));
     intruderAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+T")));
     connect(intruderAction, &QAction::triggered, this, &MainWindow::showIntruder);
-    QAction *scannerAction = toolsMenu->addAction(QStringLiteral("Scanner"));
+    QAction *scannerAction = toolsMenu->addAction(t("menu.scanner"));
     scannerAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+S")));
     connect(scannerAction, &QAction::triggered, this, &MainWindow::showScanner);
 
-    QMenu *viewMenu = menuBar()->addMenu(QStringLiteral("视图"));
-    QMenu *themeMenu = viewMenu->addMenu(QStringLiteral("主题"));
-    QAction *lightAction = themeMenu->addAction(QStringLiteral("浅色"));
+    QMenu *viewMenu = menuBar()->addMenu(t("menu.view"));
+    QMenu *themeMenu = viewMenu->addMenu(t("menu.theme"));
+    QAction *lightAction = themeMenu->addAction(t("theme.light"));
     connect(lightAction, &QAction::triggered, this, [this] { setTheme(QStringLiteral("light")); });
-    QAction *darkAction = themeMenu->addAction(QStringLiteral("深色"));
+    QAction *darkAction = themeMenu->addAction(t("theme.dark"));
     connect(darkAction, &QAction::triggered, this, [this] { setTheme(QStringLiteral("dark")); });
-    QAction *systemAction = themeMenu->addAction(QStringLiteral("跟随系统"));
+    QAction *systemAction = themeMenu->addAction(t("theme.system"));
     connect(systemAction, &QAction::triggered, this, [this] { setTheme(QStringLiteral("system")); });
     viewMenu->addSeparator();
-    QAction *resetZoomAction = viewMenu->addAction(QStringLiteral("重置缩放"));
+    QAction *resetZoomAction = viewMenu->addAction(t("menu.zoomReset"));
     resetZoomAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+0")));
     connect(resetZoomAction, &QAction::triggered, this, &MainWindow::resetZoom);
-    QAction *zoomInAction = viewMenu->addAction(QStringLiteral("放大"));
+    QAction *zoomInAction = viewMenu->addAction(t("menu.zoomIn"));
     zoomInAction->setShortcut(QKeySequence(QStringLiteral("Ctrl++")));
     connect(zoomInAction, &QAction::triggered, this, &MainWindow::zoomIn);
-    QAction *zoomOutAction = viewMenu->addAction(QStringLiteral("缩小"));
+    QAction *zoomOutAction = viewMenu->addAction(t("menu.zoomOut"));
     zoomOutAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+-")));
     connect(zoomOutAction, &QAction::triggered, this, &MainWindow::zoomOut);
 
-    QMenu *settingsMenu = menuBar()->addMenu(QStringLiteral("设置"));
-    QAction *preferencesAction = settingsMenu->addAction(QStringLiteral("偏好设置"));
+    QMenu *settingsMenu = menuBar()->addMenu(t("menu.settings"));
+    QAction *preferencesAction = settingsMenu->addAction(t("menu.preferences"));
     preferencesAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+,")));
     connect(preferencesAction, &QAction::triggered, this, &MainWindow::showSettings);
 
-    QMenu *helpMenu = menuBar()->addMenu(QStringLiteral("帮助"));
-    QAction *tutorialAction = helpMenu->addAction(QStringLiteral("📖 教程"));
+    QMenu *languageMenu = settingsMenu->addMenu(t("menu.language"));
+    auto *languageGroup = new QActionGroup(this);
+    languageGroup->setExclusive(true);
+    const auto languages = Translator::instance().languages();
+    for (const auto &language : languages) {
+        QAction *action = languageMenu->addAction(language.second);
+        action->setCheckable(true);
+        action->setChecked(language.first == Translator::instance().code());
+        action->setData(language.first);
+        languageGroup->addAction(action);
+        const QString code = language.first;
+        connect(action, &QAction::triggered, this, [this, code] {
+            if (Translator::instance().code() == code) {
+                return;
+            }
+            QSettings().setValue(QStringLiteral("ui/language"), code);
+            QMessageBox::information(this, t("language.title"), t("language.restart"));
+        });
+    }
+
+    QMenu *helpMenu = menuBar()->addMenu(t("menu.help"));
+    QAction *tutorialAction = helpMenu->addAction(t("menu.tutorial"));
     connect(tutorialAction, &QAction::triggered, this, &MainWindow::showTutorial);
     helpMenu->addSeparator();
-    QAction *aboutAction = helpMenu->addAction(QStringLiteral("关于"));
+    QAction *aboutAction = helpMenu->addAction(t("menu.about"));
     connect(aboutAction, &QAction::triggered, this, &MainWindow::showAbout);
 }
 
 void MainWindow::createToolBar() {
-    QToolBar *toolbar = addToolBar(QStringLiteral("主要"));
+    QToolBar *toolbar = addToolBar(t("toolbar.title"));
     toolbar->setObjectName(QStringLiteral("main_toolbar"));
     toolbar->setMovable(false);
+    toolbar->setIconSize(QSize(14, 14));
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
 
+    startAction_->setIcon(style()->standardIcon(QStyle::SP_MediaPlay));
+    stopAction_->setIcon(style()->standardIcon(QStyle::SP_MediaStop));
     toolbar->addAction(startAction_);
     toolbar->addAction(stopAction_);
     toolbar->addSeparator();
 
-    QAction *repeaterAction = toolbar->addAction(QStringLiteral("🔄 Repeater"));
+    QAction *repeaterAction = toolbar->addAction(t("menu.repeater"));
     connect(repeaterAction, &QAction::triggered, this, &MainWindow::showRepeater);
-    QAction *intruderAction = toolbar->addAction(QStringLiteral("💣 Intruder"));
+    QAction *intruderAction = toolbar->addAction(t("menu.intruder"));
     connect(intruderAction, &QAction::triggered, this, &MainWindow::showIntruder);
-    QAction *scannerAction = toolbar->addAction(QStringLiteral("🔍 Scanner"));
+    QAction *scannerAction = toolbar->addAction(t("menu.scanner"));
     connect(scannerAction, &QAction::triggered, this, &MainWindow::showScanner);
     toolbar->addSeparator();
 
-    QAction *clearAction = toolbar->addAction(QStringLiteral("🗑 清空"));
+    QAction *clearAction = toolbar->addAction(t("toolbar.clear"));
     connect(clearAction, &QAction::triggered, this, &MainWindow::clearPackets);
     toolbar->addSeparator();
 
-    toolbar->addWidget(new QLabel(QStringLiteral("  过滤: "), this));
+    auto *filterLabel = new QLabel(t("toolbar.filter") + QStringLiteral(":"), this);
+    filterLabel->setObjectName(QStringLiteral("toolbarLabel"));
+    toolbar->addWidget(filterLabel);
     filterInput_ = new QLineEdit(this);
-    filterInput_->setPlaceholderText(QStringLiteral("过滤条件..."));
-    filterInput_->setMinimumWidth(200);
+    filterInput_->setPlaceholderText(t("toolbar.filterPlaceholder"));
+    filterInput_->setMinimumWidth(190);
     connect(filterInput_, &QLineEdit::textChanged, this, &MainWindow::applyFilter);
     toolbar->addWidget(filterInput_);
     toolbar->addSeparator();
 
-    toolbar->addWidget(new QLabel(QStringLiteral("  主题: "), this));
+    auto *themeLabel = new QLabel(t("toolbar.theme") + QStringLiteral(":"), this);
+    themeLabel->setObjectName(QStringLiteral("toolbarLabel"));
+    toolbar->addWidget(themeLabel);
     themeCombo_ = new QComboBox(this);
-    themeCombo_->addItems({
-        QStringLiteral("☀️ 浅色"),
-        QStringLiteral("🌙 深色"),
-        QStringLiteral("🖥️ 跟随系统"),
-    });
+    themeCombo_->addItems({t("theme.light"), t("theme.dark"), t("theme.system")});
+    themeCombo_->setMinimumWidth(120);
     connect(themeCombo_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MainWindow::onThemeComboChanged);
     toolbar->addWidget(themeCombo_);
 }
 
 void MainWindow::createDocks() {
-    packetDock_ = new QDockWidget(QStringLiteral("数据包历史"), this);
+    packetDock_ = new QDockWidget(t("table.title"), this);
     packetDock_->setObjectName(QStringLiteral("packet_dock"));
     packetTable_ = new QTableWidget(this);
     packetTable_->setColumnCount(6);
     packetTable_->setHorizontalHeaderLabels({
-        QStringLiteral("#"),
-        QStringLiteral("时间"),
-        QStringLiteral("方向"),
-        QStringLiteral("长度"),
-        QStringLiteral("状态"),
-        QStringLiteral("摘要"),
+        t("table.id"),
+        t("table.time"),
+        t("table.direction"),
+        t("table.length"),
+        t("table.status"),
+        t("table.summary"),
     });
     packetTable_->setAlternatingRowColors(true);
     packetTable_->setSelectionBehavior(QAbstractItemView::SelectRows);
     packetTable_->setSelectionMode(QAbstractItemView::SingleSelection);
     packetTable_->setEditTriggers(QAbstractItemView::NoEditTriggers);
+    packetTable_->setShowGrid(false);
+    packetTable_->verticalHeader()->setVisible(false);
+    packetTable_->verticalHeader()->setDefaultSectionSize(30);
+    packetTable_->horizontalHeader()->setHighlightSections(false);
+    packetTable_->horizontalHeader()->setDefaultAlignment(Qt::AlignLeft | Qt::AlignVCenter);
     packetTable_->horizontalHeader()->setSectionResizeMode(5, QHeaderView::Stretch);
     packetTable_->setColumnWidth(0, 48);
     packetTable_->setColumnWidth(1, 138);
@@ -239,76 +363,378 @@ void MainWindow::createDocks() {
     packetTable_->setContextMenuPolicy(Qt::CustomContextMenu);
     connect(packetTable_, &QTableWidget::customContextMenuRequested, this, &MainWindow::showPacketContextMenu);
     connect(packetTable_, &QTableWidget::cellDoubleClicked, this, &MainWindow::onPacketDoubleClicked);
-    packetDock_->setWidget(packetTable_);
+
+    auto *packetContainer = new QWidget(this);
+    auto *packetLayout = new QVBoxLayout(packetContainer);
+    packetLayout->setContentsMargins(0, 0, 0, 0);
+    packetLayout->setSpacing(0);
+    emptyHint_ = new QLabel(t("table.empty"), packetContainer);
+    emptyHint_->setObjectName(QStringLiteral("emptyHint"));
+    emptyHint_->setWordWrap(true);
+    emptyHint_->setContentsMargins(12, 10, 12, 10);
+    packetLayout->addWidget(emptyHint_);
+    packetLayout->addWidget(packetTable_, 1);
+    packetDock_->setWidget(packetContainer);
     addDockWidget(Qt::LeftDockWidgetArea, packetDock_);
 
-    requestDock_ = new QDockWidget(QStringLiteral("请求编辑器"), this);
+    requestDock_ = new QDockWidget(t("inspector.requestTitle"), this);
     requestDock_->setObjectName(QStringLiteral("request_dock"));
-    requestEditor_ = createPacketViewer(this);
+    requestEditor_ = createPacketViewer(this, t("inspector.requestPlaceholder"));
     requestDock_->setWidget(requestEditor_);
     addDockWidget(Qt::RightDockWidgetArea, requestDock_);
 
-    responseDock_ = new QDockWidget(QStringLiteral("响应编辑器"), this);
+    responseDock_ = new QDockWidget(t("inspector.responseTitle"), this);
     responseDock_->setObjectName(QStringLiteral("response_dock"));
-    responseEditor_ = createPacketViewer(this);
+    responseEditor_ = createPacketViewer(this, t("inspector.responsePlaceholder"));
     responseDock_->setWidget(responseEditor_);
     addDockWidget(Qt::RightDockWidgetArea, responseDock_);
 
     tabifyDockWidget(requestDock_, responseDock_);
     requestDock_->raise();
-    resizeDocks({packetDock_}, {520}, Qt::Horizontal);
-    resizeDocks({requestDock_, responseDock_}, {470, 470}, Qt::Horizontal);
+    resizeDocks({packetDock_}, {500}, Qt::Horizontal);
+    resizeDocks({requestDock_, responseDock_}, {420, 420}, Qt::Horizontal);
 }
 
 void MainWindow::createStatusBar() {
-    statusLabel_ = new QLabel(QStringLiteral("就绪"), this);
-    proxyStatusLabel_ = new QLabel(QStringLiteral("代理: 未启动"), this);
-    packetCountLabel_ = new QLabel(QStringLiteral("数据包: 0"), this);
+    statusLabel_ = new QLabel(t("status.ready"), this);
+    statusLabel_->setObjectName(QStringLiteral("statusText"));
+    proxyStatusLabel_ = new QLabel(t("status.proxyOffline"), this);
+    proxyStatusLabel_->setObjectName(QStringLiteral("pill"));
+    proxyStatusLabel_->setProperty("state", "offline");
+    packetCountLabel_ = new QLabel(t("status.packetCount").arg(0), this);
+    packetCountLabel_->setObjectName(QStringLiteral("statusMeta"));
     themeLabel_ = new QLabel(QStringLiteral("🌓"), this);
+    themeLabel_->setObjectName(QStringLiteral("statusMeta"));
+    auto *languageLabel = new QLabel(Translator::instance().code().toUpper(), this);
+    languageLabel->setObjectName(QStringLiteral("statusMeta"));
 
+    statusBar()->setSizeGripEnabled(false);
     statusBar()->addWidget(statusLabel_);
+    statusBar()->addPermanentWidget(languageLabel);
     statusBar()->addPermanentWidget(themeLabel_);
     statusBar()->addPermanentWidget(proxyStatusLabel_);
     statusBar()->addPermanentWidget(packetCountLabel_);
 }
 
+QWidget *MainWindow::createDashboard() {
+    auto *page = new QWidget(this);
+    page->setObjectName(QStringLiteral("dashboard"));
+
+    auto *layout = new QVBoxLayout(page);
+    layout->setContentsMargins(24, 20, 24, 20);
+    layout->setSpacing(12);
+
+    auto *eyebrow = new QLabel(t("dashboard.eyebrow"), page);
+    eyebrow->setObjectName(QStringLiteral("eyebrow"));
+    auto *title = new QLabel(t("dashboard.title"), page);
+    title->setObjectName(QStringLiteral("pageTitle"));
+    auto *subtitle = new QLabel(t("dashboard.subtitle"), page);
+    subtitle->setObjectName(QStringLiteral("muted"));
+    subtitle->setWordWrap(true);
+
+    layout->addWidget(eyebrow);
+    layout->addWidget(title);
+    layout->addWidget(subtitle);
+
+    auto *actions = new QHBoxLayout();
+    actions->setSpacing(8);
+    proxyPill_ = new QLabel(t("dashboard.proxy.offline"), page);
+    proxyPill_->setObjectName(QStringLiteral("pill"));
+    proxyPill_->setProperty("state", "offline");
+    primaryStartButton_ = new QPushButton(t("dashboard.startProxy"), page);
+    primaryStartButton_->setObjectName(QStringLiteral("primaryButton"));
+    primaryStartButton_->setCursor(Qt::PointingHandCursor);
+    connect(primaryStartButton_, &QPushButton::clicked, this, &MainWindow::startProxy);
+    actions->addWidget(proxyPill_);
+    actions->addStretch(1);
+    actions->addWidget(primaryStartButton_);
+    layout->addLayout(actions);
+
+    auto *grid = new QGridLayout();
+    grid->setHorizontalSpacing(12);
+    grid->setVerticalSpacing(12);
+    grid->setColumnStretch(0, 1);
+    grid->setColumnStretch(1, 1);
+
+    auto *proxyCard = createMetricCard(
+        t("dashboard.card.proxy"), t("dashboard.card.proxy.value"),
+        t("dashboard.card.proxy.detail"), &proxyCardValue_, &proxyCardDetail_);
+    grid->addWidget(proxyCard, 0, 0, 1, 2);
+    auto *sessionCard = createMetricCard(
+        t("dashboard.card.sessions"), t("dashboard.card.sessions.value"),
+        t("dashboard.card.sessions.detail"), &sessionCardValue_);
+    grid->addWidget(sessionCard, 1, 0);
+    auto *packetCard = createMetricCard(
+        t("dashboard.card.packets"), t("dashboard.card.packets.value"),
+        t("dashboard.card.packets.detail"), &packetCardValue_);
+    grid->addWidget(packetCard, 1, 1);
+
+    auto *quickPanel = new QFrame(page);
+    quickPanel->setObjectName(QStringLiteral("panel"));
+    auto *quickLayout = new QVBoxLayout(quickPanel);
+    quickLayout->setContentsMargins(16, 14, 16, 14);
+    quickLayout->setSpacing(8);
+    auto *quickTitle = new QLabel(t("dashboard.quick.title"), quickPanel);
+    quickTitle->setObjectName(QStringLiteral("sectionTitle"));
+    auto *quickBody = new QLabel(t("dashboard.quick.body"), quickPanel);
+    quickBody->setObjectName(QStringLiteral("muted"));
+    quickBody->setWordWrap(true);
+    auto *quickButton = new QPushButton(t("dashboard.quick.button"), quickPanel);
+    quickButton->setObjectName(QStringLiteral("ghostButton"));
+    quickButton->setCursor(Qt::PointingHandCursor);
+    connect(quickButton, &QPushButton::clicked, this, &MainWindow::startProxy);
+    auto *quickActions = new QHBoxLayout();
+    quickActions->addStretch(1);
+    quickActions->addWidget(quickButton);
+    quickLayout->addWidget(quickTitle);
+    quickLayout->addWidget(quickBody);
+    quickLayout->addLayout(quickActions);
+    grid->addWidget(quickPanel, 2, 0, 1, 2);
+
+    layout->addLayout(grid);
+    layout->addStretch(1);
+
+    auto *footer = new QLabel(t("dashboard.footer"), page);
+    footer->setObjectName(QStringLiteral("caption"));
+    layout->addWidget(footer);
+
+    return page;
+}
+
+QFrame *MainWindow::createMetricCard(const QString &title, const QString &value,
+                                     const QString &detail, QLabel **valueLabel,
+                                     QLabel **detailLabel) {
+    auto *card = new QFrame(this);
+    card->setObjectName(QStringLiteral("metricCard"));
+    card->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    card->setMinimumHeight(92);
+
+    auto *layout = new QVBoxLayout(card);
+    layout->setContentsMargins(16, 14, 16, 14);
+    layout->setSpacing(4);
+
+    auto *titleLabel = new QLabel(title, card);
+    titleLabel->setObjectName(QStringLiteral("metricLabel"));
+    auto *valueWidget = new QLabel(value, card);
+    valueWidget->setObjectName(QStringLiteral("metricValue"));
+    auto *detailWidget = new QLabel(detail, card);
+    detailWidget->setObjectName(QStringLiteral("metricDetail"));
+    detailWidget->setWordWrap(true);
+
+    layout->addWidget(titleLabel);
+    layout->addWidget(valueWidget);
+    layout->addWidget(detailWidget);
+    *valueLabel = valueWidget;
+    if (detailLabel) {
+        *detailLabel = detailWidget;
+    }
+    return card;
+}
+
+QString MainWindow::findProxyBinary() const {
+    QStringList candidates;
+    const QString environment = qEnvironmentVariable("NETTOOL_BIN");
+    if (!environment.isEmpty()) {
+        candidates << environment;
+    }
+    const QString appDir = QCoreApplication::applicationDirPath();
+    candidates << appDir + QStringLiteral("/nettoold");
+    candidates << appDir + QStringLiteral("/nettoold.exe");
+    candidates << appDir + QStringLiteral("/../../target/release/nettoold");
+    candidates << appDir + QStringLiteral("/../../target/debug/nettoold");
+    candidates << appDir + QStringLiteral("/../../target/release/nettoold.exe");
+    candidates << appDir + QStringLiteral("/../../target/debug/nettoold.exe");
+    const QString fromPath = QStandardPaths::findExecutable(QStringLiteral("nettoold"));
+    if (!fromPath.isEmpty()) {
+        candidates << fromPath;
+    }
+    for (const QString &candidate : candidates) {
+        const QFileInfo info(candidate);
+        if (info.exists() && info.isFile() && info.isExecutable()) {
+            return info.absoluteFilePath();
+        }
+    }
+    return QString();
+}
+
+void MainWindow::setProxyRunning(bool running) {
+    proxyRunning_ = running;
+    if (startAction_) {
+        startAction_->setEnabled(!running);
+    }
+    if (stopAction_) {
+        stopAction_->setEnabled(running);
+    }
+    if (primaryStartButton_) {
+        primaryStartButton_->setEnabled(!running);
+    }
+
+    const QString state = running ? QStringLiteral("online") : QStringLiteral("offline");
+    for (QLabel *label : {proxyPill_, proxyStatusLabel_}) {
+        if (!label) {
+            continue;
+        }
+        label->setText(running ? t("dashboard.proxy.online") : t("dashboard.proxy.offline"));
+        label->setProperty("state", state);
+        label->style()->unpolish(label);
+        label->style()->polish(label);
+    }
+    if (proxyCardValue_) {
+        proxyCardValue_->setText(running ? t("dashboard.card.proxy.running")
+                                        : t("dashboard.card.proxy.value"));
+    }
+    statusLabel_->setText(running ? t("status.proxyRunning") : t("status.proxyStopped"));
+}
+
+void MainWindow::addPacketLine(const QString &line) {
+    static const QRegularExpression pattern(
+        QStringLiteral("^#(\\d+) (C->S|S->C) (\\d+)B (\\S+)(?: (.*))?$"));
+    const QRegularExpressionMatch match = pattern.match(line);
+    if (!match.hasMatch()) {
+        return;
+    }
+
+    const int row = packetTable_->rowCount();
+    packetTable_->insertRow(row);
+    const QString direction = match.captured(2) == QStringLiteral("C->S")
+                                  ? QStringLiteral("C→S")
+                                  : QStringLiteral("S→C");
+    QString summary = match.captured(4);
+    if (!match.captured(5).isEmpty()) {
+        summary += QStringLiteral(" · ") + match.captured(5);
+    }
+
+    const QStringList values = {
+        match.captured(1),
+        QTime::currentTime().toString(QStringLiteral("HH:mm:ss")),
+        direction,
+        match.captured(3) + QStringLiteral(" B"),
+        t("table.forwarded"),
+        summary,
+    };
+    for (int column = 0; column < values.size(); ++column) {
+        auto *item = new QTableWidgetItem(values.at(column));
+        item->setTextAlignment(Qt::AlignLeft | Qt::AlignVCenter);
+        packetTable_->setItem(row, column, item);
+    }
+    packetTable_->scrollToBottom();
+    if (emptyHint_) {
+        emptyHint_->hide();
+    }
+    packetCount_ += 1;
+    if (packetCardValue_) {
+        packetCardValue_->setText(QString::number(packetCount_));
+    }
+    packetCountLabel_->setText(t("status.packetCount").arg(packetCount_));
+    statusLabel_->setText(t("status.packetCount").arg(packetCount_));
+}
+
 void MainWindow::startProxy() {
-    statusBar()->showMessage(
-        QStringLiteral("代理后端尚未接入 Qt 客户端；下一步接 daemon start_proxy。"), 5000);
+    if (proxyRunning_) {
+        return;
+    }
+    const QString binary = findProxyBinary();
+    if (binary.isEmpty()) {
+        QMessageBox::warning(this, t("menu.startProxy"), t("status.proxyBinaryMissing"));
+        return;
+    }
+
+    QSettings settings;
+    const int listenPort = settings.value(QStringLiteral("proxy/listenPort"), 25565).toInt();
+    const QString targetHost = settings.value(QStringLiteral("proxy/targetHost"), QStringLiteral("localhost")).toString();
+    const int targetPort = settings.value(QStringLiteral("proxy/targetPort"), 25566).toInt();
+    QString protocol = settings.value(QStringLiteral("proxy/protocol"), QStringLiteral("auto")).toString();
+    if (protocol == QStringLiteral("https")) {
+        protocol = QStringLiteral("tls");
+    } else if (protocol == QStringLiteral("minecraft")) {
+        protocol = QStringLiteral("mc");
+    }
+
+    proxyProcess_ = new QProcess(this);
+    connect(proxyProcess_, &QProcess::readyReadStandardOutput, this, [this] {
+        while (proxyProcess_ && proxyProcess_->canReadLine()) {
+            const QString line = QString::fromUtf8(proxyProcess_->readLine()).trimmed();
+            if (!line.isEmpty()) {
+                addPacketLine(line);
+            }
+        }
+    });
+    connect(proxyProcess_, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this](int, QProcess::ExitStatus) {
+                if (proxyRunning_) {
+                    setProxyRunning(false);
+                }
+                if (proxyProcess_) {
+                    proxyProcess_->deleteLater();
+                    proxyProcess_ = nullptr;
+                }
+            });
+
+    const QStringList arguments = {
+        QStringLiteral("proxy"),
+        QStringLiteral("--listen"), QStringLiteral("127.0.0.1:%1").arg(listenPort),
+        QStringLiteral("--target"), QStringLiteral("%1:%2").arg(targetHost).arg(targetPort),
+        QStringLiteral("--protocol"), protocol,
+    };
+    proxyProcess_->start(binary, arguments);
+    if (!proxyProcess_->waitForStarted(3000)) {
+        QMessageBox::warning(this, t("menu.startProxy"),
+                             t("status.proxyStartFailed").arg(proxyProcess_->errorString()));
+        proxyProcess_->deleteLater();
+        proxyProcess_ = nullptr;
+        return;
+    }
+    setProxyRunning(true);
 }
 
 void MainWindow::stopProxy() {
-    statusBar()->showMessage(
-        QStringLiteral("代理后端尚未接入 Qt 客户端。"), 5000);
+    if (proxyProcess_) {
+        if (proxyProcess_->state() != QProcess::NotRunning) {
+            proxyProcess_->terminate();
+            if (!proxyProcess_->waitForFinished(1500)) {
+                proxyProcess_->kill();
+                proxyProcess_->waitForFinished(1000);
+            }
+        }
+        if (proxyProcess_) {
+            proxyProcess_->deleteLater();
+            proxyProcess_ = nullptr;
+        }
+    }
+    setProxyRunning(false);
 }
 
 void MainWindow::clearPackets() {
     packetTable_->setRowCount(0);
     packetCount_ = 0;
-    packetCountLabel_->setText(QStringLiteral("数据包: 0"));
+    packetCountLabel_->setText(t("status.packetCount").arg(0));
+    if (packetCardValue_) {
+        packetCardValue_->setText(QStringLiteral("0"));
+    }
+    if (emptyHint_) {
+        emptyHint_->show();
+    }
     requestEditor_->clear();
     responseEditor_->clear();
-    statusLabel_->setText(QStringLiteral("已清空数据包历史"));
+    statusLabel_->setText(t("status.cleared"));
 }
 
 void MainWindow::exportPackets() {
     if (packetTable_->rowCount() == 0) {
-        QMessageBox::information(this, QStringLiteral("导出数据包"),
-                                 QStringLiteral("当前没有数据包可导出。"));
+        QMessageBox::information(this, t("dialog.export.title"), t("dialog.export.empty"));
         return;
     }
 
     const QString path = QFileDialog::getSaveFileName(
-        this, QStringLiteral("导出数据包"), QStringLiteral("packets.csv"),
-        QStringLiteral("CSV (*.csv);;所有文件 (*)"));
+        this, t("dialog.export.title"), QStringLiteral("packets.csv"),
+        t("dialog.export.filter"));
     if (path.isEmpty()) {
         return;
     }
 
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QMessageBox::warning(this, QStringLiteral("导出失败"),
-                             QStringLiteral("无法写入文件。"));
+        QMessageBox::warning(this, t("dialog.export.title"), t("dialog.export.error"));
         return;
     }
     QTextStream stream(&file);
@@ -326,57 +752,78 @@ void MainWindow::exportPackets() {
         }
         stream << '\n';
     }
-    statusLabel_->setText(QStringLiteral("数据包已导出"));
+    statusLabel_->setText(t("status.exported"));
 }
 
 void MainWindow::showProxyConfig() {
-    QMessageBox::information(this, QStringLiteral("代理配置"),
-                             QStringLiteral("代理配置对话框正在从 PySide6 1:1 移植。"));
+    QSettings settings;
+    ProxySettings current;
+    current.listenPort = settings.value(QStringLiteral("proxy/listenPort"), 25565).toInt();
+    current.targetHost = settings.value(QStringLiteral("proxy/targetHost"), QStringLiteral("localhost")).toString();
+    current.targetPort = settings.value(QStringLiteral("proxy/targetPort"), 25566).toInt();
+    current.protocol = settings.value(QStringLiteral("proxy/protocol"), QStringLiteral("auto")).toString();
+    current.mode = settings.value(QStringLiteral("proxy/mode"), QStringLiteral("intercept")).toString();
+
+    ProxyConfigDialog dialog(current, this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    const ProxySettings next = dialog.settings();
+    settings.setValue(QStringLiteral("proxy/listenPort"), next.listenPort);
+    settings.setValue(QStringLiteral("proxy/targetHost"), next.targetHost);
+    settings.setValue(QStringLiteral("proxy/targetPort"), next.targetPort);
+    settings.setValue(QStringLiteral("proxy/protocol"), next.protocol);
+    settings.setValue(QStringLiteral("proxy/mode"), next.mode);
+
+    if (proxyCardDetail_) {
+        proxyCardDetail_->setText(
+            QStringLiteral("%1:%2  →  %3:%4")
+                .arg(QStringLiteral("127.0.0.1"))
+                .arg(next.listenPort)
+                .arg(next.targetHost)
+                .arg(next.targetPort));
+    }
+    statusLabel_->setText(t("dialog.settings.saved"));
 }
 
 void MainWindow::showRules() {
-    QMessageBox::information(this, QStringLiteral("规则管理"),
-                             QStringLiteral("规则管理对话框正在从 PySide6 1:1 移植。"));
+    RuleManagerDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::showRepeater() {
-    QMessageBox::information(this, QStringLiteral("Repeater"),
-                             QStringLiteral("Repeater 窗口正在从 PySide6 1:1 移植。"));
+    RepeaterDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::showIntruder() {
-    QMessageBox::information(this, QStringLiteral("Intruder"),
-                             QStringLiteral("Intruder 窗口正在从 PySide6 1:1 移植。"));
+    IntruderDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::showScanner() {
-    QMessageBox::information(this, QStringLiteral("Scanner"),
-                             QStringLiteral("Scanner 窗口正在从 PySide6 1:1 移植。"));
+    ScannerDialog dialog(this);
+    dialog.exec();
 }
 
 void MainWindow::showSettings() {
-    QMessageBox::information(this, QStringLiteral("偏好设置"),
-                             QStringLiteral("设置对话框正在从 PySide6 1:1 移植。"));
+    SettingsDialog dialog(this);
+    if (dialog.exec() != QDialog::Accepted) {
+        return;
+    }
+    setTheme(dialog.selectedTheme());
+    QFont font = QApplication::font();
+    font.setPointSize(dialog.selectedFontSize());
+    QApplication::setFont(font);
+    statusLabel_->setText(t("dialog.settings.saved"));
 }
 
 void MainWindow::showTutorial() {
-    QMessageBox::information(
-        this, QStringLiteral("教程"),
-        QStringLiteral("NetTool ζ 核心功能：\n"
-                       "1. 代理：拦截和转发 Minecraft 协议数据包\n"
-                       "2. Repeater：重放 HTTP 请求\n"
-                       "3. Intruder：批量测试\n"
-                       "4. Scanner：漏洞扫描\n"
-                       "5. 规则引擎：过滤和修改数据包\n"
-                       "6. Web 仪表盘：远程监控（端口 2679）"));
+    QMessageBox::information(this, t("dialog.tutorial.title"), t("dialog.tutorial.body"));
 }
 
 void MainWindow::showAbout() {
-    QMessageBox::about(
-        this, QStringLiteral("关于 NetTool ζ"),
-        QStringLiteral("SilentStudio© NetTool ζ\n"
-                       "终极协议安全测试平台\n\n"
-                       "Qt 6 Widgets 客户端（PySide6 1:1 移植中）"));
+    QMessageBox::about(this, t("dialog.about.title"), t("dialog.about.body"));
 }
 
 void MainWindow::applyFilter(const QString &text) {
@@ -432,7 +879,7 @@ void MainWindow::applyTheme(const QString &theme) {
     } else {
         dark_ = QGuiApplication::styleHints()->colorScheme() == Qt::ColorScheme::Dark;
     }
-    setStyleSheet(dark_ ? darkStyle() : lightStyle());
+    qApp->setStyleSheet(dark_ ? darkStyle() : lightStyle());
     if (themeLabel_) {
         themeLabel_->setText(dark_ ? QStringLiteral("🌙") : QStringLiteral("☀️"));
     }
@@ -440,7 +887,7 @@ void MainWindow::applyTheme(const QString &theme) {
 
 void MainWindow::applyZoom() {
     QFont font = QApplication::font();
-    const int pointSize = qBound(6, static_cast<int>(9.0 * zoom_), 20);
+    const int pointSize = qBound(6, static_cast<int>(9.0 * zoom_) + 1, 20);
     font.setPointSize(pointSize);
     QApplication::setFont(font);
 }
@@ -448,19 +895,19 @@ void MainWindow::applyZoom() {
 void MainWindow::zoomIn() {
     zoom_ = qMin(2.0, zoom_ * 1.05);
     applyZoom();
-    statusBar()->showMessage(QStringLiteral("缩放: %1%").arg(static_cast<int>(zoom_ * 100)), 1500);
+    statusBar()->showMessage(t("status.zoomed").arg(static_cast<int>(zoom_ * 100)), 1500);
 }
 
 void MainWindow::zoomOut() {
     zoom_ = qMax(0.5, zoom_ * 0.95);
     applyZoom();
-    statusBar()->showMessage(QStringLiteral("缩放: %1%").arg(static_cast<int>(zoom_ * 100)), 1500);
+    statusBar()->showMessage(t("status.zoomed").arg(static_cast<int>(zoom_ * 100)), 1500);
 }
 
 void MainWindow::resetZoom() {
     zoom_ = 1.0;
     applyZoom();
-    statusBar()->showMessage(QStringLiteral("缩放已重置"), 1500);
+    statusBar()->showMessage(t("status.zoomReset"), 1500);
 }
 
 void MainWindow::wheelEvent(QWheelEvent *event) {
@@ -482,8 +929,8 @@ void MainWindow::showPacketContextMenu(const QPoint &position) {
         return;
     }
     QMenu menu(this);
-    QAction *copyAction = menu.addAction(QStringLiteral("复制摘要"));
-    QAction *inspectAction = menu.addAction(QStringLiteral("查看请求/响应"));
+    QAction *copyAction = menu.addAction(t("context.copySummary"));
+    QAction *inspectAction = menu.addAction(t("context.inspect"));
     QAction *selected = menu.exec(packetTable_->viewport()->mapToGlobal(position));
     if (selected == copyAction) {
         const QTableWidgetItem *summary = packetTable_->item(row, 5);
@@ -499,7 +946,7 @@ void MainWindow::onPacketDoubleClicked(int row, int column) {
     const QTableWidgetItem *direction = packetTable_->item(row, 2);
     const QTableWidgetItem *length = packetTable_->item(row, 3);
     requestEditor_->setPlainText(
-        QStringLiteral("数据包摘要\n\n方向: %1\n长度: %2\n摘要: %3")
+        t("inspector.packet")
             .arg(direction ? direction->text() : QString(),
                  length ? length->text() : QString(),
                  summary ? summary->text() : QString()));

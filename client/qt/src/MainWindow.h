@@ -6,10 +6,13 @@
 class QAction;
 class QComboBox;
 class QDockWidget;
+class QFrame;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
 class QPoint;
+class QProcess;
+class QPushButton;
 class QTableWidget;
 class QWheelEvent;
 
@@ -50,6 +53,14 @@ private:
     void createToolBar();
     void createDocks();
     void createStatusBar();
+    QString t(const QString &key) const;
+    QString findProxyBinary() const;
+    void setProxyRunning(bool running);
+    void addPacketLine(const QString &line);
+    QWidget *createDashboard();
+    QFrame *createMetricCard(const QString &title, const QString &value,
+                             const QString &detail, QLabel **valueLabel,
+                             QLabel **detailLabel = nullptr);
     void applyTheme(const QString &theme);
     void applyZoom();
 
@@ -67,6 +78,15 @@ private:
     QLabel *proxyStatusLabel_ = nullptr;
     QLabel *packetCountLabel_ = nullptr;
     QLabel *themeLabel_ = nullptr;
+    QLabel *proxyPill_ = nullptr;
+    QLabel *proxyCardValue_ = nullptr;
+    QLabel *proxyCardDetail_ = nullptr;
+    QLabel *emptyHint_ = nullptr;
+    QLabel *sessionCardValue_ = nullptr;
+    QLabel *packetCardValue_ = nullptr;
+    QPushButton *primaryStartButton_ = nullptr;
+    QProcess *proxyProcess_ = nullptr;
+    bool proxyRunning_ = false;
 
     QString theme_ = QStringLiteral("system");
     bool dark_ = false;

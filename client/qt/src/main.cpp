@@ -1,14 +1,31 @@
+#include "Dialogs.h"
 #include "MainWindow.h"
+#include "Tools.h"
+#include "Translator.h"
 
 #include <QApplication>
 #include <QFont>
+#include <QSettings>
 #include <QTimer>
 
 int main(int argc, char *argv[]) {
     QApplication app(argc, argv);
-    app.setApplicationName(QStringLiteral("NetTool ζ"));
-    app.setOrganizationName(QStringLiteral("SilentStudio"));
+    QCoreApplication::setOrganizationName(QStringLiteral("SilentStudio"));
+    QCoreApplication::setApplicationName(QStringLiteral("NetTool ζ"));
     app.setStyle(QStringLiteral("Fusion"));
+
+    const QStringList arguments = app.arguments();
+    QSettings settings;
+    QString language = settings.value(QStringLiteral("ui/language")).toString();
+    const int languageIndex = arguments.indexOf(QStringLiteral("--lang"));
+    if (languageIndex >= 0 && languageIndex + 1 < arguments.size()) {
+        language = arguments.at(languageIndex + 1);
+    }
+    if (language.isEmpty()) {
+        language = Translator::systemDefault();
+    }
+    Translator::instance().load(language);
+    app.setApplicationDisplayName(Translator::instance().text(QStringLiteral("app.name")));
 
     QFont font;
 #ifdef Q_OS_DARWIN
@@ -18,13 +35,12 @@ int main(int argc, char *argv[]) {
 #else
     font.setFamily(QStringLiteral("Helvetica"));
 #endif
-    font.setPointSize(9);
+    font.setPointSize(10);
     app.setFont(font);
 
     MainWindow window;
     window.show();
 
-    const QStringList arguments = app.arguments();
     const int screenshotIndex = arguments.indexOf(QStringLiteral("--screenshot"));
     if (screenshotIndex >= 0 && screenshotIndex + 1 < arguments.size()) {
         const QString path = arguments.at(screenshotIndex + 1);
@@ -32,6 +48,14 @@ int main(int argc, char *argv[]) {
             window.grab().save(path);
             app.quit();
         });
+    } else if (arguments.contains(QStringLiteral("--dialog-smoke"))) {
+        ProxyConfigDialog proxy(ProxySettings(), &window);
+        SettingsDialog settings(&window);
+        RepeaterDialog repeater(&window);
+        RuleManagerDialog rules(&window);
+        IntruderDialog intruder(&window);
+        ScannerDialog scanner(&window);
+        QTimer::singleShot(200, &app, &QCoreApplication::quit);
     } else if (arguments.contains(QStringLiteral("--smoke-test"))) {
         QTimer::singleShot(200, &app, &QCoreApplication::quit);
     }

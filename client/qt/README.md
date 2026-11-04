@@ -26,23 +26,39 @@ Render a screenshot without opening a window:
 
 ## Port status
 
-Ported in this slice:
+Implemented:
 
-- Main window, title, geometry and Fusion font
-- Menus: 文件 / 代理 / 工具 / 视图 / 设置 / 帮助
-- Toolbar: start/stop, Repeater/Intruder/Scanner, clear, filter, theme
-- Docks: packet history table, request/response editors
-- Status bar: ready, theme, proxy, packet count
-- Light/dark/system styles and zoom shortcuts
+- Main window, dashboard, docks and status bar
+- Light/dark/system themes, filtering and zoom
+- Key=value localisation with Chinese and English UI strings
+- Proxy configuration, preferences and language selection
+- Start/stop of the Rust `nettoold proxy` process, with captured packet rows
+- Repeater, Rules, Intruder and Scanner dialogs
 
-Pending:
+Known gaps from full legacy parity:
 
-- Packet table live data and proxy backend wiring
-- Packet editor tabs, hex/JSON/HTTP highlighting
-- ProxyConfigDialog, SettingsDialog
-- RepeaterManager, IntruderDialog, ScannerDialog
-- SmartExportDialog, RuleManagerDialog
-- Web dashboard and notifications
+- PacketEditor tabs with hex/JSON/HTTP highlighting
+- Notification centre and smart export dialog
+- Legacy rule-engine integration on the Qt side
+- Web dashboard
+- Additional translations beyond Chinese and English
 
-The start/stop actions currently report that the daemon proxy-session API is not
-wired yet; they do not fake a running proxy.
+The tool dialogs are functional Qt ports, not placeholder message boxes. They do
+not yet have every legacy option (for example, Intruder concurrency controls),
+but every menu entry opens an actual window.
+
+## Language files
+
+UI strings live in `lang/*.lang` as `key=value`. The index is
+`lang/languages.conf`:
+
+    zh-CN=简体中文
+    en=English
+
+English is always the fallback. To add a language, copy `lang/en.lang`, translate
+the values, add one line to `languages.conf`, and rebuild so CMake copies the
+language directory next to the executable.
+
+Run with a specific language:
+
+    ./build/qt/nettool-qt --lang zh-CN
