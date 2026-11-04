@@ -21,7 +21,7 @@ cli.error.dropDirection=--drop-direction：需要 c2s|s2c，收到“{value}”
 cli.error.duration=--duration：需要非负整数秒，收到“{value}”
 cli.error.ruleMissing=--rule 需要一个值
 cli.error.rule=--rule 无效：{error}；示例：--rule 'drop dir=c2s proto=http prefix=GET'
-cli.error.proxyBind=proxy：无法绑定 {address}：{error}；--listen 必须是本机拥有的 IP（可试 127.0.0.1:<端口> 或 0.0.0.0:<端口>）；低于 1024 的端口通常需要特权
+cli.error.proxyBind=proxy：无法绑定 {address}\n{error}\n--listen 必须是本机拥有的 IP（可试 127.0.0.1:<端口> 或 0.0.0.0:<端口>）\n低于 1024 的端口通常需要特权
 cli.error.serveBind=serve：无法绑定 {address}：{error}
 cli.error.analyzeUsage=用法：nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]
 cli.error.analyzeOpen=analyze：无法打开“{path}”：{error}

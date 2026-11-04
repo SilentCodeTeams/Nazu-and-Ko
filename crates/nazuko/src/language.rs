@@ -24,7 +24,6 @@ use std::time::Duration;
 use crate::i18n;
 
 const CACHE_TTL: Duration = Duration::from_secs(24 * 60 * 60);
-const MAX_COUNTRY_BYTES: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Selection {
@@ -64,7 +63,11 @@ pub fn resolve(
             return Ok(Selection::Builtin(code.to_string()));
         }
     }
-    Ok(Selection::Builtin(language_for_country(&country_code())))
+    let country = country_code();
+    let code = language_for_country(&country)
+        .or_else(system_language)
+        .unwrap_or("en");
+    Ok(Selection::Builtin(code.to_string()))
 }
 
 fn builtin_selection(value: &str) -> Result<Selection, String> {
@@ -187,33 +190,62 @@ fn write_cached_country(path: &Path, code: &str) {
 }
 
 fn fetch_country() -> String {
-    let output = Command::new("curl")
-        .args(["-fsS", "--max-time", "2", "https://ipapi.co/country/"])
-        .output();
-    let Ok(output) = output else {
-        return String::new();
-    };
-    if !output.status.success() {
-        return String::new();
+    for url in ["https://ipapi.co/country/", "https://ipinfo.io/country"] {
+        if let Some(code) = curl_country(url) {
+            return code;
+        }
     }
-    String::from_utf8_lossy(&output.stdout)
+    String::new()
+}
+
+fn curl_country(url: &str) -> Option<String> {
+    let output = Command::new("curl")
+        .args(["-fsS", "--max-time", "2", "-A", "nazuko/0.1", url])
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let code = String::from_utf8_lossy(&output.stdout)
         .trim()
-        .to_ascii_uppercase()
+        .to_ascii_uppercase();
+    valid_country(&code).then_some(code)
 }
 
 fn valid_country(code: &str) -> bool {
-    code.len() <= MAX_COUNTRY_BYTES
-        && code.len() == 2
-        && code.chars().all(|character| character.is_ascii_uppercase())
+    code.len() == 2 && code.chars().all(|character| character.is_ascii_uppercase())
 }
 
-pub fn language_for_country(country: &str) -> String {
-    match country {
-        "CN" => "zh-CN",
-        "TW" | "HK" | "MO" => "zh-TW",
-        _ => "en",
+fn system_language() -> Option<&'static str> {
+    for key in ["LC_ALL", "LC_MESSAGES", "LANG", "LANGUAGE"] {
+        if let Ok(value) = env::var(key) {
+            for part in value.split([':', ',']) {
+                if let Some(code) = i18n::normalize(part) {
+                    return Some(code);
+                }
+            }
+        }
     }
-    .to_string()
+    #[cfg(target_os = "macos")]
+    {
+        let output = Command::new("defaults")
+            .args(["read", "-g", "AppleLocale"])
+            .output()
+            .ok()?;
+        if output.status.success() {
+            let value = String::from_utf8_lossy(&output.stdout);
+            return i18n::normalize(value.trim());
+        }
+    }
+    None
+}
+
+pub fn language_for_country(country: &str) -> Option<&'static str> {
+    match country {
+        "CN" => Some("zh-CN"),
+        "TW" | "HK" | "MO" => Some("zh-TW"),
+        _ => None,
+    }
 }
 
 #[cfg(test)]
@@ -222,11 +254,11 @@ mod tests {
 
     #[test]
     fn maps_country_to_supported_language() {
-        assert_eq!(language_for_country("CN"), "zh-CN");
-        assert_eq!(language_for_country("TW"), "zh-TW");
-        assert_eq!(language_for_country("HK"), "zh-TW");
-        assert_eq!(language_for_country("US"), "en");
-        assert_eq!(language_for_country(""), "en");
+        assert_eq!(language_for_country("CN"), Some("zh-CN"));
+        assert_eq!(language_for_country("TW"), Some("zh-TW"));
+        assert_eq!(language_for_country("HK"), Some("zh-TW"));
+        assert_eq!(language_for_country("US"), None);
+        assert_eq!(language_for_country(""), None);
     }
 
     #[test]

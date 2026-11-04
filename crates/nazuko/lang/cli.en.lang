@@ -21,7 +21,7 @@ cli.error.dropDirection=--drop-direction: expected c2s|s2c, got "{value}"
 cli.error.duration=--duration: expected non-negative integer seconds, got "{value}"
 cli.error.ruleMissing=--rule requires a value
 cli.error.rule=--rule is invalid: {error}; example: --rule 'drop dir=c2s proto=http prefix=GET'
-cli.error.proxyBind=proxy: cannot bind {address}: {error}; --listen must be an IP assigned to this machine (try 127.0.0.1:<port> or 0.0.0.0:<port>); ports below 1024 usually require privileges
+cli.error.proxyBind=proxy: cannot bind {address}\n{error}\n--listen must be an IP assigned to this machine (try 127.0.0.1:<port> or 0.0.0.0:<port>)\nports below 1024 usually require privileges
 cli.error.serveBind=serve: cannot bind {address}: {error}
 cli.error.analyzeUsage=usage: nazuko analyze <file.pcap> [--hex] [--dissect] [--json] [--limit N]
 cli.error.analyzeOpen=analyze: cannot open "{path}": {error}

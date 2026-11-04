@@ -22,6 +22,7 @@ Licensed as AGPL-3.0-or-later.
 > config language
 > NAZUKO_LANG
 > public IP country
+> system language
 > en
 ```
 
@@ -79,13 +80,18 @@ Only used when no explicit setting or config exists.
 
 - `CN` → `zh-CN`
 - `TW`, `HK`, `MO` → `zh-TW`
-- every other country → `en`
-- lookup failure → `en`
+- every other country → system language
+- lookup failure → system language
 
 The lookup calls `https://ipapi.co/country/` through the system `curl` with a
-2-second timeout. Only the two-letter country code is cached for 24 hours; the
-full IP is not logged. VPNs and corporate egress can make the country wrong, so
-the user setting always has final authority.
+2-second timeout and a `nazuko/0.1` User-Agent; `https://ipinfo.io/country` is
+the fallback. Only the two-letter country code is cached for 24 hours; the full
+IP is not logged. VPNs and corporate egress can make the country wrong, so the
+user setting always has final authority.
+
+If the country is unsupported or the lookup fails, the resolver uses the OS
+locale (`LC_ALL`, `LC_MESSAGES`, `LANG`, `LANGUAGE`, then macOS `AppleLocale`).
+If that is also unsupported, English is used.
 
 ## MCP
 
