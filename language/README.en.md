@@ -159,6 +159,11 @@ Nazu&Ko is for systems you own or are explicitly authorized to test. It does
 not ship stealth, evasion or unauthorized remote-control features. See
 ../SECURITY.md and ../docs/AUTHORIZED-USE.md.
 
+## Contributors
+
+- **DeepSeek-Work-In-SilentStudio** — AI development (contributor identity)
+- **Silent-xiaomiao** — project initiator / releases ([GitHub](https://github.com/Silent-xiaomiao))
+
 ## License
 
 AGPL-3.0-or-later. See ../LICENSE and ../NOTICE.
