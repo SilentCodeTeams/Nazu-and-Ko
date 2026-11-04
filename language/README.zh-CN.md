@@ -13,9 +13,10 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
   按捕获块求值。
 - Phase 2 daemon 控制服务器 MVP：loopback TCP、0600 token state file、
   JSON lines 鉴权、dry-run MAC 租约。
+- Qt 6 Widgets 客户端：主窗口 1:1 骨架完成；对话框与代理后端接入下一步。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
 - 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
-- 尚未完成：daemon proxy session 命令与 Qt 客户端、特权 MAC helper、
+- 尚未完成：Qt 对话框与 daemon proxy session 命令、特权 MAC helper、
   TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
 
 ## 协议支持
@@ -38,6 +39,12 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
 
     cargo test --workspace
     cargo build --release
+
+Qt 客户端：
+
+    cmake -S client/qt -B build/qt \
+      -DCMAKE_PREFIX_PATH=/Users/apple/Qt/6.11.2/macos
+    cmake --build build/qt -j 4
 
 质量门禁：
 
@@ -107,6 +114,7 @@ list_leases 和 shutdown；proxy session 命令下一步接入。
     crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃、规则判定
     crates/nettool-control   控制类型、会话与 MAC 租约状态机
     crates/nettoold          CLI 与本地控制服务器
+    client/qt                Qt 6 Widgets 客户端（主窗口移植）
     docs/PROTOCOL.md         线格式、版本与代理语义
     docs/RULES.md            规则语法、语义与安全边界
     docs/ARCHITECTURE.md     架构、检测流程、扩展点

@@ -15,11 +15,13 @@ and UI clients.
   payload bytes, evaluated per captured chunk.
 - Phase 2 daemon control server MVP: loopback TCP, 0600 token state file,
   JSON-lines authentication and dry-run MAC leases.
+- Qt 6 Widgets client: 1:1 main-window shell ported; dialogs and proxy backend
+  wiring are next.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
 - 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: daemon proxy-session commands and Qt client, privileged MAC helper,
-  TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login
-  state, plugin runtime.
+- Not yet: Qt dialog ports and daemon proxy-session commands, privileged MAC
+  helper, TLS MITM, HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and
+  login state, plugin runtime.
 
 ## Protocol support
 
@@ -41,6 +43,12 @@ From the repository root:
 
     cargo test --workspace
     cargo build --release
+
+Qt client:
+
+    cmake -S client/qt -B build/qt \
+      -DCMAKE_PREFIX_PATH=/Users/apple/Qt/6.11.2/macos
+    cmake --build build/qt -j 4
 
 Quality gates:
 
@@ -111,6 +119,7 @@ Example output:
     crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops, rules
     crates/nettool-control   control types, session and MAC lease state machine
     crates/nettoold          CLI and local control server
+    client/qt                Qt 6 Widgets client (main window port)
     docs/PROTOCOL.md         wire formats, versions and proxy semantics
     docs/RULES.md            packet rule syntax, semantics and safety
     docs/ARCHITECTURE.md     crate graph, detection flow, extension points
