@@ -106,7 +106,7 @@ fn cmd_proxy(args: &[String]) -> CliResult {
     let listen_value = take_flag(args, "--listen").unwrap_or_else(|| "127.0.0.1:25565".to_string());
     let listen: SocketAddr = listen_value.parse().map_err(|_| {
         invalid(format!(
-            "bad --listen address {listen_value}; expected host:port"
+            "--listen: expected IP:port, got {listen_value:?}; example: --listen 127.0.0.1:25565"
         ))
     })?;
     let target = take_flag(args, "--target").unwrap_or_else(|| "127.0.0.1:25566".to_string());
@@ -168,7 +168,11 @@ fn cmd_proxy(args: &[String]) -> CliResult {
             println!("  rules: {}", config.rules.len());
         }
     }
-    let proxy = Proxy::bind(config)?;
+    let proxy = Proxy::bind(config).map_err(|error| {
+        invalid(format!(
+            "proxy: cannot bind {listen}: {error}; --listen must be an IP assigned to this machine (try 127.0.0.1:<port> or 0.0.0.0:<port>); ports below 1024 usually require privileges"
+        ))
+    })?;
     if !json {
         println!("  bound: {}", proxy.local_addr()?);
     }
@@ -177,14 +181,17 @@ fn cmd_proxy(args: &[String]) -> CliResult {
 }
 
 fn cmd_serve(args: &[String]) -> CliResult {
-    let bind: SocketAddr = take_flag(args, "--bind")
-        .unwrap_or_else(|| "127.0.0.1:0".to_string())
-        .parse()
-        .map_err(|_| invalid("bad --bind address".to_string()))?;
+    let bind_value = take_flag(args, "--bind").unwrap_or_else(|| "127.0.0.1:0".to_string());
+    let bind: SocketAddr = bind_value.parse().map_err(|_| {
+        invalid(format!(
+            "--bind: expected IP:port, got {bind_value:?}; example: --bind 127.0.0.1:0"
+        ))
+    })?;
     let state_path = take_flag(args, "--state")
         .map(PathBuf::from)
         .unwrap_or_else(|| env::temp_dir().join(format!("nazuko-{}.state", std::process::id())));
-    let daemon = daemon::Daemon::bind(bind, state_path.clone())?;
+    let daemon = daemon::Daemon::bind(bind, state_path.clone())
+        .map_err(|error| invalid(format!("serve: cannot bind {bind}: {error}")))?;
     println!("nazuko control server");
     println!("  bind: {}", daemon.local_addr()?);
     println!("  state: {}", state_path.display());
