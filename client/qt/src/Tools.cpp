@@ -305,6 +305,9 @@ IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {
     layout->addWidget(payloads_);
 
     auto *options = new QHBoxLayout();
+    concurrency_ = new QSpinBox(this);
+    concurrency_->setRange(1, 20);
+    concurrency_->setValue(4);
     delay_ = new QSpinBox(this);
     delay_->setRange(0, 5000);
     delay_->setSingleStep(100);
@@ -312,6 +315,8 @@ IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {
     stop_ = new QPushButton(translate("tools.intruder.stop"), this);
     stop_->setEnabled(false);
     connect(stop_, &QPushButton::clicked, this, &IntruderDialog::stopRun);
+    options->addWidget(new QLabel(translate("tools.intruder.concurrency"), this));
+    options->addWidget(concurrency_);
     options->addWidget(new QLabel(translate("tools.intruder.delay"), this));
     options->addWidget(delay_);
     options->addStretch(1);
@@ -348,6 +353,8 @@ void IntruderDialog::start() {
     }
     results_->setRowCount(0);
     index_ = 0;
+    active_ = 0;
+    completed_ = 0;
     stopRequested_ = false;
     running_ = true;
     start_->setEnabled(false);
@@ -356,16 +363,27 @@ void IntruderDialog::start() {
 }
 
 void IntruderDialog::sendNext() {
-    if (stopRequested_ || index_ >= queue_.size()) {
-        finishRun();
+    if (stopRequested_) {
+        if (active_ == 0) {
+            finishRun();
+        }
         return;
     }
-    const QString payload = queue_.at(index_++);
+    while (!stopRequested_ && active_ < concurrency_->value() && index_ < queue_.size()) {
+        sendOne(queue_.at(index_++));
+    }
+    if (active_ == 0 && index_ >= queue_.size()) {
+        finishRun();
+    }
+}
+
+void IntruderDialog::sendOne(const QString &payload) {
     const QString encoded = QString::fromUtf8(QUrl::toPercentEncoding(payload));
     QNetworkRequest request(QUrl::fromUserInput(url_->text().replace(QStringLiteral("FUZZ"), encoded)));
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
     QNetworkReply *reply = manager_->get(request);
-    status_->setText(translate("tools.intruder.progress").arg(index_).arg(queue_.size()));
+    active_ += 1;
+    status_->setText(translate("tools.intruder.progress").arg(completed_).arg(queue_.size()));
     connect(reply, &QNetworkReply::finished, this, [this, reply, payload] {
         const int row = results_->rowCount();
         results_->insertRow(row);
@@ -373,8 +391,13 @@ void IntruderDialog::sendNext() {
         results_->setItem(row, 1, new QTableWidgetItem(httpStatus(reply)));
         results_->setItem(row, 2, new QTableWidgetItem(QString::number(reply->readAll().size())));
         reply->deleteLater();
+        active_ -= 1;
+        completed_ += 1;
+        status_->setText(translate("tools.intruder.progress").arg(completed_).arg(queue_.size()));
         if (stopRequested_) {
-            finishRun();
+            if (active_ == 0) {
+                finishRun();
+            }
         } else if (delay_->value() > 0) {
             QTimer::singleShot(delay_->value(), this, &IntruderDialog::sendNext);
         } else {
@@ -387,9 +410,15 @@ void IntruderDialog::stopRun() {
     stopRequested_ = true;
     stop_->setEnabled(false);
     status_->setText(translate("tools.intruder.stopped"));
+    if (active_ == 0) {
+        finishRun();
+    }
 }
 
 void IntruderDialog::finishRun() {
+    if (!running_ || active_ > 0) {
+        return;
+    }
     running_ = false;
     start_->setEnabled(true);
     stop_->setEnabled(false);

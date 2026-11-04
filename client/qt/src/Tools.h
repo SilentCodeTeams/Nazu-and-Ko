@@ -60,6 +60,7 @@ public:
 private:
     void start();
     void sendNext();
+    void sendOne(const QString &payload);
     void finishRun();
     void stopRun();
 
@@ -70,9 +71,12 @@ private:
     QPushButton *start_ = nullptr;
     QPushButton *stop_ = nullptr;
     QSpinBox *delay_ = nullptr;
+    QSpinBox *concurrency_ = nullptr;
     QNetworkAccessManager *manager_ = nullptr;
     QStringList queue_;
     int index_ = 0;
+    int active_ = 0;
+    int completed_ = 0;
     bool running_ = false;
     bool stopRequested_ = false;
 };

@@ -172,6 +172,7 @@ tools.intruder.title=Intruder
 tools.intruder.urlPlaceholder=http://target/FUZZ
 tools.intruder.start=开始
 tools.intruder.stop=停止
+tools.intruder.concurrency=并发
 tools.intruder.delay=间隔
 tools.intruder.stopped=已停止
 tools.intruder.payloads=Payloads
