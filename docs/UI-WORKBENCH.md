@@ -24,30 +24,29 @@ layout must be dense and filled, never a large empty centre.
 
 ## Target layout
 
-    ┌──────────────────────────────────────────────────────────────┐
-    │ menu / native titlebar                                       │
-    ├──────────┬───────────────────────┬───────────────────────────┤
-    │ file     │ Explorer / traffic    │ right function area        │
-    │ explorer │ 3/4 of left region    │ Inspector / Tools          │
-    │ 1/4      │                       │                           │
-    ├──────────┴───────────────────────┴───────────────────────────┤
-    │ Workbench: single editor, no request/response tabs           │
-    ├──────────────────────────────────────────────────────────────┤
-    │ Console / terminal                                           │
-    ├──────────────────────────────────────────────────────────────┤
-    │ status island (32px, full width)                             │
-    └──────────────────────────────────────────────────────────────┘
+    ┌─────────────────────────────────────────────────────────────────────┐
+    │ menu / native titlebar                                              │
+    ├──────────┬──────────────────────┬───────────────────────┬────────────┤
+    │ file     │ traffic / sessions   │ Workbench / code      │ right      │
+    │ 1/4 left │ 3/4 left             │ editor, no tabs       │ function   │
+    ├──────────┴──────────────────────┴───────────────────────┴────────────┤
+    │ Console / terminal, full width                                      │
+    ├─────────────────────────────────────────────────────────────────────┤
+    │ status island, full width                                           │
+    └─────────────────────────────────────────────────────────────────────┘
 
-Left region:
+Four columns across the full width, left to right:
 
-- Left 1: file/project explorer, about 1/4 of the left region
-- Left 2: traffic/session functional area, about 3/4 of the left region
-- Both remain movable/resizable Qt docks
-- Prefer two docks split horizontally over a single nested splitter
+1. File/project explorer: 1/4 of the left block
+2. Traffic/session functional area: 3/4 of the left block
+3. Workbench: the code/editor column between traffic and the right function area
+4. Right function area: Inspector and tool entry points
 
-Right region: Inspector and tool entry points.
+The left block is still split 1/4 + 3/4. Both left panels remain movable and
+resizable Qt docks. The Workbench is a separate centre column, not a row below
+the columns.
 
-Bottom: Console/terminal.
+Bottom: Console/terminal spans the full width.
 
 Very bottom: existing status island, unchanged.
 
@@ -56,7 +55,7 @@ Very bottom: existing status island, unchanged.
 Remove the Request Editor / Response Editor tab bar. They were inherited from the
 old layout and take visual priority away from the Workbench.
 
-The centre becomes one Workbench surface:
+The third column becomes one Workbench surface:
 
 - code mode
 - prompt mode
@@ -145,7 +144,8 @@ Not yet done:
 ## Acceptance
 
 - no empty centre at default 1400x900
-- left explorer is about 1/4 of the left region; traffic area about 3/4
+- left explorer is about 1/4 of the left block; traffic area about 3/4
+- Workbench is the third column, between traffic and the right function area
 - Workbench has no request/response tab strip
 - Ctrl+1/2/3 and buttons both switch modes
 - mode controls stay visually secondary
