@@ -7,4 +7,5 @@ description = "NetTool TCP proxy with Minecraft framing and pcap capture"
 
 [dependencies]
 nettool-proto = { path = "../nettool-proto" }
+nettool-rules = { path = "../nettool-rules" }
 nettool-capture = { path = "../nettool-capture" }

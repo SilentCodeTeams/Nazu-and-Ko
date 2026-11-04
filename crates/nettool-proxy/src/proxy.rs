@@ -23,6 +23,7 @@ use std::time::{Duration, Instant, SystemTime};
 
 use nettool_capture::{PcapWriter, TcpSegment};
 use nettool_proto::{inspect, packet_id, Detection, Frame, PacketFramer, Protocol};
+use nettool_rules::{Action, Direction as RuleDirection, RuleContext, RuleSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Direction {
@@ -111,6 +112,7 @@ pub struct PacketEvent {
     pub data: Vec<u8>,
     pub frames: Vec<Frame>,
     pub dropped: bool,
+    pub matched_rule: Option<String>,
 }
 
 /// A consumer of PacketEvents. Implementations must be Send because they are
@@ -166,7 +168,14 @@ impl ConsoleSink {
 
 impl EventSink for ConsoleSink {
     fn on_event(&mut self, event: &PacketEvent) -> io::Result<()> {
-        let suffix = if event.dropped { " dropped" } else { "" };
+        let mut suffix = String::new();
+        if event.dropped {
+            suffix.push_str(" dropped");
+        }
+        if let Some(rule) = &event.matched_rule {
+            suffix.push_str(" rule=");
+            suffix.push_str(rule);
+        }
         if event.protocol == Protocol::Minecraft && !event.frames.is_empty() {
             for frame in &event.frames {
                 let id = packet_id(&frame.payload)
@@ -204,6 +213,7 @@ pub struct ProxyConfig {
     pub sinks: Vec<SharedSink>,
     pub verbose: bool,
     pub drop_direction: Option<Direction>,
+    pub rules: RuleSet,
     pub duration: Option<Duration>,
 }
 
@@ -217,6 +227,7 @@ impl Default for ProxyConfig {
             sinks: Vec::new(),
             verbose: true,
             drop_direction: None,
+            rules: RuleSet::default(),
             duration: None,
         }
     }
@@ -433,14 +444,14 @@ fn relay(
             None => Vec::new(),
         };
 
-        {
+        let dropped = {
             let mut dispatcher = dispatcher
                 .lock()
                 .unwrap_or_else(|poisoned| poisoned.into_inner());
-            dispatcher.record(direction, &data, &frames, protocol, drop_this_direction);
-        }
+            dispatcher.record(direction, &data, &frames, protocol, drop_this_direction)
+        };
 
-        if !drop_this_direction && to.write_all(&data).is_err() {
+        if !dropped && to.write_all(&data).is_err() {
             break;
         }
     }
@@ -452,6 +463,7 @@ fn relay(
 
 struct Dispatcher {
     sinks: Vec<SharedSink>,
+    rules: RuleSet,
     client: SocketAddr,
     target: SocketAddr,
     c2s_seq: u32,
@@ -463,6 +475,7 @@ impl Dispatcher {
     fn new(config: &ProxyConfig, client: SocketAddr, target: SocketAddr) -> Self {
         Self {
             sinks: config.sinks.clone(),
+            rules: config.rules.clone(),
             client,
             target,
             c2s_seq: 0,
@@ -477,12 +490,27 @@ impl Dispatcher {
         data: &[u8],
         frames: &[Frame],
         protocol: Protocol,
-        dropped: bool,
-    ) {
+        drop_this_direction: bool,
+    ) -> bool {
         let (src, dst, seq, ack) = match direction {
             Direction::ClientToServer => (self.client, self.target, self.c2s_seq, self.s2c_seq),
             Direction::ServerToClient => (self.target, self.client, self.s2c_seq, self.c2s_seq),
         };
+
+        let rule_direction = match direction {
+            Direction::ClientToServer => RuleDirection::ClientToServer,
+            Direction::ServerToClient => RuleDirection::ServerToClient,
+        };
+        let matched = self.rules.evaluate(&RuleContext {
+            direction: rule_direction,
+            protocol,
+            src_port: src.port(),
+            dst_port: dst.port(),
+            data,
+        });
+        let rule_drop = matched.is_some_and(|rule| rule.action() == Action::Drop);
+        let matched_rule = matched.map(|rule| rule.name().to_string());
+        let dropped = drop_this_direction || rule_drop;
 
         self.next_id += 1;
         let event = PacketEvent {
@@ -497,6 +525,7 @@ impl Dispatcher {
             data: data.to_vec(),
             frames: frames.to_vec(),
             dropped,
+            matched_rule,
         };
 
         for sink in &self.sinks {
@@ -514,6 +543,8 @@ impl Dispatcher {
                 self.s2c_seq = self.s2c_seq.wrapping_add(data.len() as u32)
             }
         }
+
+        dropped
     }
 }
 
@@ -561,6 +592,7 @@ mod tests {
             sinks: vec![recording],
             verbose: false,
             drop_direction: None,
+            rules: RuleSet::default(),
             duration: Some(Duration::from_millis(500)),
         };
         let proxy = Arc::new(Proxy::bind(config).unwrap());
@@ -590,5 +622,47 @@ mod tests {
         assert_eq!(captured[1].data, b"hello");
         assert_eq!(captured[1].seq, 0);
         assert_eq!(captured[1].ack, 5);
+    }
+
+    #[test]
+    fn rule_drop_is_reported_and_blocks_forwarding() {
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let recording = Arc::new(Mutex::new(RecordingSink {
+            events: events.clone(),
+        }));
+        let rules =
+            RuleSet::parse(&["drop dir=c2s contains=secret".to_string()]).expect("valid rule");
+        let config = ProxyConfig {
+            listen: "127.0.0.1:0".parse().unwrap(),
+            target_host: "127.0.0.1".to_string(),
+            target_port: 1,
+            protocol: DetectMode::Raw,
+            sinks: vec![recording],
+            verbose: false,
+            drop_direction: None,
+            rules,
+            duration: None,
+        };
+        let mut dispatcher = Dispatcher::new(
+            &config,
+            "127.0.0.1:5000".parse().unwrap(),
+            "127.0.0.1:5001".parse().unwrap(),
+        );
+
+        let dropped = dispatcher.record(
+            Direction::ClientToServer,
+            b"secret",
+            &[],
+            Protocol::Unknown,
+            false,
+        );
+        assert!(dropped);
+
+        let captured = events
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        assert_eq!(captured.len(), 1);
+        assert!(captured[0].dropped);
+        assert_eq!(captured[0].matched_rule.as_deref(), Some("rule-1"));
     }
 }

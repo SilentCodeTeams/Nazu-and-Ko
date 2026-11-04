@@ -11,8 +11,10 @@ and UI clients.
 
 - Phase 1 foundation is complete: protocol registry, transparent TCP proxy,
   real pcap capture, PacketEvent/EventSink, control types.
+- Phase 2 packet rules: drop/allow by direction, protocol, ports, length and
+  payload bytes, evaluated per captured chunk.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
-- 44 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
+- 52 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
 - Not yet: daemon API and Qt client, privileged MAC helper, TLS MITM,
   HTTP/2 HPACK, HTTP/3 over QUIC, Minecraft compression and login state,
   plugin runtime.
@@ -54,6 +56,9 @@ Quality gates:
 
     ./target/release/nettoold proxy --duration 10 ...
 
+    ./target/release/nettoold proxy \
+      --rule 'drop dir=c2s proto=mc contains=hello' ...
+
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
 | Option | Default | Description |
@@ -64,7 +69,19 @@ Quality gates:
 | --pcap | none | Write a real pcap |
 | --duration | none | Stop accepting after N seconds |
 | --drop-direction | none | Drop c2s or s2c; still captured |
+| --rule | none | Repeatable drop/allow predicate; see docs/RULES.md |
 | --quiet | off | Suppress per-packet output |
+
+### Packet rules
+
+Rules are evaluated per captured chunk; the first match wins and no match
+allows. Use --rule repeatedly. An earlier allow can whitelist traffic before a
+later drop.
+
+    --rule 'drop proto=http prefix=GET'
+    --rule 'drop dir=s2c min_len=4096'
+
+See docs/RULES.md for syntax, event reporting and safety.
 
 Example output:
 
@@ -75,11 +92,13 @@ Example output:
 ## Layout
 
     crates/nettool-proto     VarInt, MC framing, registry, TLS/HTTP/DNS/QUIC
+    crates/nettool-rules     packet predicates and ordered rule set
     crates/nettool-capture   pcap writer/reader, synthetic TCP frames
-    crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops
+    crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops, rules
     crates/nettool-control   control types, session and MAC lease state machine
     crates/nettoold          CLI entry point, daemon next
     docs/PROTOCOL.md         wire formats, versions and proxy semantics
+    docs/RULES.md            packet rule syntax, semantics and safety
     docs/ARCHITECTURE.md     crate graph, detection flow, extension points
     docs/PROCESS-MODEL.md    UI / daemon / privileged helper, crash isolation
     docs/CONTROL-API.md      daemon API message model

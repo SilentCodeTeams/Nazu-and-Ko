@@ -9,8 +9,10 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
 
 - Phase 1 地基完成：协议注册表、透明 TCP 代理、真实 pcap、PacketEvent/
   EventSink、控制类型。
+- Phase 2 规则引擎完成：按方向、协议、端口、长度和载荷字节 drop/allow，
+  按捕获块求值。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
-- 44 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
+- 52 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
 - 尚未完成：daemon API 与 Qt 客户端、特权 MAC helper、TLS MITM、
   HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、插件运行时。
 
@@ -51,6 +53,9 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
 
     ./target/release/nettoold proxy --duration 10 ...
 
+    ./target/release/nettoold proxy \
+      --rule 'drop dir=c2s proto=mc contains=hello' ...
+
     ./target/release/nettoold analyze capture.pcap --hex --dissect
 
 | 参数 | 默认值 | 说明 |
@@ -61,7 +66,18 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
 | --pcap | 无 | 写入真实 pcap |
 | --duration | 无 | N 秒后停止接收新连接 |
 | --drop-direction | 无 | 丢弃 c2s 或 s2c，仍会记录 |
+| --rule | 无 | 可重复的 drop/allow 谓词；见 docs/RULES.md |
 | --quiet | 关闭 | 不输出逐包日志 |
+
+### 规则
+
+规则按捕获块求值；第一条匹配的规则生效，没有匹配则放行。可重复使用
+--rule，前面的 allow 可用于在后面的 drop 之前放行指定流量。
+
+    --rule 'drop proto=http prefix=GET'
+    --rule 'drop dir=s2c min_len=4096'
+
+语法、事件字段和安全边界见 docs/RULES.md。
 
 示例输出：
 
@@ -72,11 +88,13 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
 ## 目录
 
     crates/nettool-proto     VarInt、MC 分帧、协议注册表、TLS/HTTP/DNS/QUIC
+    crates/nettool-rules     分组谓词与有序规则集
     crates/nettool-capture   pcap 读写、合成 TCP 帧
-    crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃
+    crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃、规则判定
     crates/nettool-control   控制类型、会话与 MAC 租约状态机
     crates/nettoold          CLI 入口，daemon 后续加入
     docs/PROTOCOL.md         线格式、版本与代理语义
+    docs/RULES.md            规则语法、语义与安全边界
     docs/ARCHITECTURE.md     架构、检测流程、扩展点
     docs/PROCESS-MODEL.md    UI / daemon / 特权 helper、崩溃隔离
     docs/CONTROL-API.md      daemon API 消息模型

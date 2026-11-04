@@ -23,6 +23,14 @@ version = "0.1.0"
 dependencies = [
  "nettool-capture",
  "nettool-proto",
+ "nettool-rules",
+]
+
+[[package]]
+name = "nettool-rules"
+version = "0.1.0"
+dependencies = [
+ "nettool-proto",
 ]
 
 [[package]]

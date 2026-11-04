@@ -44,10 +44,11 @@ Phase 1 (done)
 - PacketEvent + EventSink boundary
 - CI, security and authorized-use docs
 
-Phase 2
+Phase 2 (in progress)
 
+- rule engine with packet predicates (done)
 - daemon API over a local authenticated transport (control types first)
-- rule engine with packet predicates and framed forwarding
+- framed forwarding
 - MC compression and login state
 - HTTP/2 frames
 

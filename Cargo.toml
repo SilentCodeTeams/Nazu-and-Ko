@@ -2,6 +2,7 @@
 resolver = "2"
 members = [
     "crates/nettool-proto",
+    "crates/nettool-rules",
     "crates/nettool-capture",
     "crates/nettool-proxy",
     "crates/nettool-control",

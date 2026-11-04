@@ -19,7 +19,9 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use nettool_capture::read_pcap;
-use nettool_proxy::{ConsoleSink, DetectMode, Direction, PcapSink, Proxy, ProxyConfig, SharedSink};
+use nettool_proxy::{
+    ConsoleSink, DetectMode, Direction, PcapSink, Proxy, ProxyConfig, RuleSet, SharedSink,
+};
 
 type CliResult = Result<(), Box<dyn Error>>;
 
@@ -62,6 +64,14 @@ fn has_flag(args: &[String], name: &str) -> bool {
     args.iter().any(|a| a == name)
 }
 
+fn take_flags(args: &[String], name: &str) -> Vec<String> {
+    args.iter()
+        .enumerate()
+        .filter(|(_, arg)| arg.as_str() == name)
+        .filter_map(|(index, _)| args.get(index + 1).cloned())
+        .collect()
+}
+
 fn split_host_port(value: &str) -> Result<(String, u16), Box<dyn Error>> {
     let (host, port) = value
         .rsplit_once(':')
@@ -102,6 +112,12 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         )),
         None => None,
     };
+    let rule_specs = take_flags(args, "--rule");
+    if rule_specs.is_empty() && has_flag(args, "--rule") {
+        return Err(invalid("--rule requires a value".to_string()));
+    }
+    let rules =
+        RuleSet::parse(&rule_specs).map_err(|error| invalid(format!("bad --rule: {error}")))?;
 
     let mut sinks: Vec<SharedSink> = Vec::new();
     if let Some(path) = &pcap {
@@ -119,11 +135,15 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         sinks,
         verbose: !quiet,
         drop_direction,
+        rules,
         duration,
     };
     println!("nettoold proxy");
     println!("  listen: {}", config.listen);
     println!("  target: {}:{}", config.target_host, config.target_port);
+    if !config.rules.is_empty() {
+        println!("  rules: {}", config.rules.len());
+    }
     let proxy = Proxy::bind(config)?;
     println!("  bound: {}", proxy.local_addr()?);
     proxy.run()?;
@@ -212,7 +232,13 @@ fn usage() {
          \x20 --pcap <file>            write a real pcap\n\
          \x20 --duration <seconds>     stop accepting after N seconds\n\
          \x20 --drop-direction <dir>   drop c2s or s2c (still captured)\n\
-         \x20 --quiet                  suppress per-packet output",
+         \x20 --rule <expr>            repeatable drop/allow predicate\n\
+         \x20 --quiet                  suppress per-packet output\n\
+         \n\
+         RULE EXAMPLES:\n\
+         \x20 --rule 'drop dir=c2s proto=mc contains=hello'\n\
+         \x20 --rule 'drop proto=http prefix=GET'\n\
+         \x20 --rule 'drop dir=s2c min_len=4096'",
         env!("CARGO_PKG_VERSION")
     );
 }

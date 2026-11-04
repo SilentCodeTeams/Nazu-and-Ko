@@ -79,7 +79,7 @@ EventSink implementations:
     PacketEvent {
         id, timestamp, direction, protocol,
         src, dst, seq, ack,
-        data, frames, dropped
+        data, frames, dropped, matched_rule
     }
 
     SharedSink = Arc<Mutex<dyn EventSink>>
@@ -110,8 +110,9 @@ Phase 0: MC framing, relay, real pcap, CLI.
 Phase 1 (done): protocol registry, TLS/HTTP/DNS/QUIC detection, EventSink,
 control types, docs, CI.
 
-Phase 2: daemon API and control server, rule engine with packet predicates,
-MC compression and login state, HTTP/2 frames, framed forwarding.
+Phase 2 (in progress): rule engine with packet predicates done; daemon API and
+control server, MC compression and login state, HTTP/2 frames, framed forwarding
+next.
 
 Phase 3: capture backends (BPF, AF_PACKET, Npcap/WinDivert), kernel QoS,
 nettool-macd privileged helper, plugin host with C ABI and signed manifests.
