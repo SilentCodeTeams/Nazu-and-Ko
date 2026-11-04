@@ -181,7 +181,7 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     notificationDuration_ = new QSpinBox(notifications);
     notificationDuration_->setRange(1000, 10000);
     notificationDuration_->setSingleStep(500);
-    notificationDuration_->setSuffix(QStringLiteral(" ms"));
+    notificationDuration_->setSuffix(translate("unit.ms"));
     notificationDuration_->setValue(settings.value(QStringLiteral("notification/duration"), 3000).toInt());
     notificationForm->addRow(translate("dialog.settings.notificationDuration"), notificationDuration_);
     tabs->addTab(notifications, translate("dialog.settings.notifications"));

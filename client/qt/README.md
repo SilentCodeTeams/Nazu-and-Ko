@@ -34,6 +34,7 @@ Implemented:
 - Proxy configuration, preferences and language selection
 - Start/stop of the Rust `nettoold proxy` process, with captured packet rows
 - Repeater, Rules, Intruder and Scanner dialogs
+- Repeater redirect/timeout options; Intruder delay/stop controls
 - PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
 - Toast notification centre
 - Smart export in CSV, JSON and TSV, all rows or visible rows

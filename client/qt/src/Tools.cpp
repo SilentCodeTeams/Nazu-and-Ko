@@ -3,6 +3,7 @@
 #include "Translator.h"
 
 #include <QAbstractItemView>
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
 #include <QFont>
@@ -18,9 +19,11 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QSettings>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QTableWidget>
 #include <QTableWidgetItem>
+#include <QTimer>
 #include <QUrl>
 #include <QVBoxLayout>
 
@@ -99,6 +102,19 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
     top->addWidget(send_);
     layout->addLayout(top);
 
+    auto *options = new QHBoxLayout();
+    followRedirects_ = new QCheckBox(translate("tools.repeater.followRedirects"), this);
+    timeout_ = new QSpinBox(this);
+    timeout_->setRange(1000, 120000);
+    timeout_->setSingleStep(1000);
+    timeout_->setValue(15000);
+    timeout_->setSuffix(translate("unit.ms"));
+    options->addWidget(followRedirects_);
+    options->addWidget(new QLabel(translate("tools.repeater.timeout"), this));
+    options->addWidget(timeout_);
+    options->addStretch(1);
+    layout->addLayout(options);
+
     auto *splitter = new QSplitter(Qt::Vertical, this);
     auto *request = new QWidget(splitter);
     auto *requestLayout = new QVBoxLayout(request);
@@ -145,6 +161,11 @@ void RepeaterDialog::sendRequest() {
 
     QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
+    request.setAttribute(
+        QNetworkRequest::RedirectPolicyAttribute,
+        followRedirects_->isChecked() ? QNetworkRequest::NoLessSafeRedirectPolicy
+                                      : QNetworkRequest::ManualRedirectPolicy);
+    request.setTransferTimeout(timeout_->value());
     const QStringList headerLines = headers_->toPlainText().split(QLatin1Char('\n'));
     for (const QString &line : headerLines) {
         const int separator = line.indexOf(QLatin1Char(':'));
@@ -283,6 +304,20 @@ IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {
     layout->addWidget(payloadLabel);
     layout->addWidget(payloads_);
 
+    auto *options = new QHBoxLayout();
+    delay_ = new QSpinBox(this);
+    delay_->setRange(0, 5000);
+    delay_->setSingleStep(100);
+    delay_->setSuffix(translate("unit.ms"));
+    stop_ = new QPushButton(translate("tools.intruder.stop"), this);
+    stop_->setEnabled(false);
+    connect(stop_, &QPushButton::clicked, this, &IntruderDialog::stopRun);
+    options->addWidget(new QLabel(translate("tools.intruder.delay"), this));
+    options->addWidget(delay_);
+    options->addStretch(1);
+    options->addWidget(stop_);
+    layout->addLayout(options);
+
     results_ = resultTable(this, {translate("tools.intruder.payload"), translate("tools.intruder.status"),
                                   translate("tools.intruder.length")});
     layout->addWidget(results_, 1);
@@ -313,13 +348,15 @@ void IntruderDialog::start() {
     }
     results_->setRowCount(0);
     index_ = 0;
+    stopRequested_ = false;
     running_ = true;
     start_->setEnabled(false);
+    stop_->setEnabled(true);
     sendNext();
 }
 
 void IntruderDialog::sendNext() {
-    if (index_ >= queue_.size()) {
+    if (stopRequested_ || index_ >= queue_.size()) {
         finishRun();
         return;
     }
@@ -336,14 +373,28 @@ void IntruderDialog::sendNext() {
         results_->setItem(row, 1, new QTableWidgetItem(httpStatus(reply)));
         results_->setItem(row, 2, new QTableWidgetItem(QString::number(reply->readAll().size())));
         reply->deleteLater();
-        sendNext();
+        if (stopRequested_) {
+            finishRun();
+        } else if (delay_->value() > 0) {
+            QTimer::singleShot(delay_->value(), this, &IntruderDialog::sendNext);
+        } else {
+            sendNext();
+        }
     });
+}
+
+void IntruderDialog::stopRun() {
+    stopRequested_ = true;
+    stop_->setEnabled(false);
+    status_->setText(translate("tools.intruder.stopped"));
 }
 
 void IntruderDialog::finishRun() {
     running_ = false;
     start_->setEnabled(true);
-    status_->setText(translate("tools.intruder.done").arg(queue_.size()));
+    stop_->setEnabled(false);
+    status_->setText(stopRequested_ ? translate("tools.intruder.stopped")
+                                    : translate("tools.intruder.done").arg(queue_.size()));
 }
 
 ScannerDialog::ScannerDialog(QWidget *parent) : QDialog(parent) {
