@@ -18,6 +18,7 @@
 #include <QNetworkRequest>
 #include <QPlainTextEdit>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QSettings>
 #include <QSpinBox>
 #include <QSplitter>
@@ -304,6 +305,22 @@ IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {
     layout->addWidget(payloadLabel);
     layout->addWidget(payloads_);
 
+    rawMode_ = new QCheckBox(translate("tools.intruder.rawMode"), this);
+    auto *rawRow = new QHBoxLayout();
+    rawHost_ = new QLineEdit(QStringLiteral("localhost"), this);
+    rawPort_ = new QSpinBox(this);
+    rawPort_->setRange(1, 65535);
+    rawPort_->setValue(8080);
+    rawRow->addWidget(new QLabel(translate("tools.intruder.host"), this));
+    rawRow->addWidget(rawHost_, 1);
+    rawRow->addWidget(new QLabel(translate("tools.intruder.port"), this));
+    rawRow->addWidget(rawPort_);
+    template_ = editor(this, translate("tools.intruder.templatePlaceholder"));
+    template_->setMaximumHeight(90);
+    layout->addWidget(rawMode_);
+    layout->addLayout(rawRow);
+    layout->addWidget(template_);
+
     auto *options = new QHBoxLayout();
     concurrency_ = new QSpinBox(this);
     concurrency_->setRange(1, 20);
@@ -338,7 +355,12 @@ void IntruderDialog::start() {
     if (running_) {
         return;
     }
-    if (!url_->text().contains(QStringLiteral("FUZZ"))) {
+    if (rawMode_->isChecked()) {
+        if (!template_->toPlainText().contains(QStringLiteral("§payload§"))) {
+            status_->setText(translate("tools.intruder.rawMarker"));
+            return;
+        }
+    } else if (!url_->text().contains(QStringLiteral("FUZZ"))) {
         status_->setText(translate("tools.intruder.marker"));
         return;
     }
@@ -378,12 +400,86 @@ void IntruderDialog::sendNext() {
 }
 
 void IntruderDialog::sendOne(const QString &payload) {
+    if (rawMode_->isChecked()) {
+        sendRaw(payload);
+        return;
+    }
     const QString encoded = QString::fromUtf8(QUrl::toPercentEncoding(payload));
     QNetworkRequest request(QUrl::fromUserInput(url_->text().replace(QStringLiteral("FUZZ"), encoded)));
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
     QNetworkReply *reply = manager_->get(request);
     active_ += 1;
     status_->setText(translate("tools.intruder.progress").arg(completed_).arg(queue_.size()));
+    handleReply(reply, payload);
+}
+
+void IntruderDialog::sendRaw(const QString &payload) {
+    QString text = template_->toPlainText();
+    if (!text.contains(QStringLiteral("§payload§"))) {
+        status_->setText(translate("tools.intruder.rawMarker"));
+        return;
+    }
+    text.replace(QStringLiteral("§payload§"), payload);
+    text.replace(QStringLiteral("\r\n"), QStringLiteral("\n"));
+    const QStringList lines = text.split(QLatin1Char('\n'));
+    if (lines.isEmpty()) {
+        status_->setText(translate("tools.intruder.invalidTemplate"));
+        return;
+    }
+    static const QRegularExpression firstLine(
+        QStringLiteral("^(\\S+) (\\S+) HTTP/\\d(?:\\.\\d)?$"));
+    const QRegularExpressionMatch match = firstLine.match(lines.first().trimmed());
+    if (!match.hasMatch()) {
+        status_->setText(translate("tools.intruder.invalidTemplate"));
+        return;
+    }
+    const QString method = match.captured(1);
+    const QString path = match.captured(2);
+
+    int lineIndex = 1;
+    QStringList headers;
+    for (; lineIndex < lines.size(); ++lineIndex) {
+        const QString line = lines.at(lineIndex).trimmed();
+        if (line.isEmpty()) {
+            ++lineIndex;
+            break;
+        }
+        headers << line;
+    }
+    const QString body = lines.mid(lineIndex).join(QLatin1Char('\n'));
+
+    const QUrl url(QStringLiteral("http://%1:%2%3")
+                       .arg(rawHost_->text().trimmed())
+                       .arg(rawPort_->value())
+                       .arg(path));
+    QNetworkRequest request(url);
+    request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
+    for (const QString &header : headers) {
+        const int separator = header.indexOf(QLatin1Char(':'));
+        if (separator <= 0) {
+            continue;
+        }
+        const QString name = header.left(separator).trimmed();
+        if (name.compare(QStringLiteral("Host"), Qt::CaseInsensitive) == 0) {
+            continue;
+        }
+        request.setRawHeader(name.toUtf8(), header.mid(separator + 1).trimmed().toUtf8());
+    }
+
+    QNetworkReply *reply = nullptr;
+    if (method == QStringLiteral("GET")) {
+        reply = manager_->get(request);
+    } else if (method == QStringLiteral("POST")) {
+        reply = manager_->post(request, body.toUtf8());
+    } else {
+        reply = manager_->sendCustomRequest(request, method.toUtf8(), body.toUtf8());
+    }
+    active_ += 1;
+    status_->setText(translate("tools.intruder.progress").arg(completed_).arg(queue_.size()));
+    handleReply(reply, payload);
+}
+
+void IntruderDialog::handleReply(QNetworkReply *reply, const QString &payload) {
     connect(reply, &QNetworkReply::finished, this, [this, reply, payload] {
         const int row = results_->rowCount();
         results_->insertRow(row);

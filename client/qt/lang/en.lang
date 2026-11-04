@@ -176,6 +176,12 @@ tools.rules.add=Add
 tools.rules.remove=Remove
 tools.intruder.title=Intruder
 tools.intruder.urlPlaceholder=http://target/FUZZ
+tools.intruder.rawMode=Use a raw HTTP template
+tools.intruder.host=Host
+tools.intruder.port=Port
+tools.intruder.templatePlaceholder=GET /?search=§payload§ HTTP/1.1
+tools.intruder.rawMarker=The template must contain the §payload§ marker.
+tools.intruder.invalidTemplate=The first line of the template is invalid.
 tools.intruder.start=Start
 tools.intruder.stop=Stop
 tools.intruder.concurrency=Concurrency

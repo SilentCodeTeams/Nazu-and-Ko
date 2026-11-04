@@ -36,6 +36,7 @@ Implemented:
 - Repeater, Rules, Intruder and Scanner dialogs
 - Repeater redirect/timeout options
 - Intruder and Scanner concurrency, delay and stop controls
+- Intruder raw HTTP-template mode with a §payload§ marker
 - Notification placement setting, honoured by the toast centre
 - PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
 - Toast notification centre
@@ -44,7 +45,6 @@ Implemented:
 
 Known gaps from full legacy parity:
 
-- Intruder raw HTTP-template mode
 - Legacy web dashboard
 - Additional translations beyond Chinese and English
 

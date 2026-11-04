@@ -176,6 +176,12 @@ tools.rules.add=添加
 tools.rules.remove=删除
 tools.intruder.title=Intruder
 tools.intruder.urlPlaceholder=http://target/FUZZ
+tools.intruder.rawMode=使用原始 HTTP 模板
+tools.intruder.host=主机
+tools.intruder.port=端口
+tools.intruder.templatePlaceholder=GET /?search=§payload§ HTTP/1.1
+tools.intruder.rawMarker=模板必须包含 §payload§ 标记。
+tools.intruder.invalidTemplate=模板首行格式无效。
 tools.intruder.start=开始
 tools.intruder.stop=停止
 tools.intruder.concurrency=并发

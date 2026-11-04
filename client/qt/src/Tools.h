@@ -61,6 +61,8 @@ private:
     void start();
     void sendNext();
     void sendOne(const QString &payload);
+    void sendRaw(const QString &payload);
+    void handleReply(QNetworkReply *reply, const QString &payload);
     void finishRun();
     void stopRun();
 
@@ -72,6 +74,10 @@ private:
     QPushButton *stop_ = nullptr;
     QSpinBox *delay_ = nullptr;
     QSpinBox *concurrency_ = nullptr;
+    QCheckBox *rawMode_ = nullptr;
+    QLineEdit *rawHost_ = nullptr;
+    QSpinBox *rawPort_ = nullptr;
+    QPlainTextEdit *template_ = nullptr;
     QNetworkAccessManager *manager_ = nullptr;
     QStringList queue_;
     int index_ = 0;
