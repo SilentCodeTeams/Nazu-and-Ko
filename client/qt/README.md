@@ -39,13 +39,14 @@ Implemented:
 - Intruder raw HTTP-template mode with a §payload§ marker
 - Notification placement setting, honoured by the toast centre
 - PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
+- Loopback web dashboard at / and /api/status
 - Toast notification centre
 - Smart export in CSV, JSON and TSV, all rows or visible rows
 - Rules saved in the Rules dialog are passed to `nettoold proxy --rule`
 
 Known gaps from full legacy parity:
 
-- Legacy web dashboard
+- Deeper legacy option parity and notification animation
 - Additional translations beyond Chinese and English
 
 The tool dialogs are functional Qt ports, not placeholder message boxes. They do

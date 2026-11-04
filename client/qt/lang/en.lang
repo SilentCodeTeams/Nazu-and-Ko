@@ -223,3 +223,14 @@ notification.proxyStarted=Proxy started
 notification.proxyStopped=Proxy stopped
 notification.settingsSaved=Settings saved
 notification.exportSaved=Packets exported
+
+web.title=NetTool ζ · Local dashboard
+web.subtitle=Live proxy state and recent packets.
+web.proxy=Proxy
+web.sessions=Sessions
+web.packets=Packets
+web.recent=Recent packets
+web.empty=No packets yet.
+web.running=Running
+web.offline=Offline
+web.footer=NetTool ζ · loopback only

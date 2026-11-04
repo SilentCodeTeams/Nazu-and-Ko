@@ -11,6 +11,7 @@ class QLabel;
 class QLineEdit;
 class NotificationCenter;
 class PacketEditor;
+class WebDashboardServer;
 class QPoint;
 class QProcess;
 class QPushButton;
@@ -58,6 +59,8 @@ private:
     QString findProxyBinary() const;
     void setProxyRunning(bool running);
     void addPacketLine(const QString &line);
+    void configureWebDashboard();
+    void updateWebDashboard();
     QWidget *createDashboard();
     QFrame *createMetricCard(const QString &title, const QString &value,
                              const QString &detail, QLabel **valueLabel,
@@ -88,6 +91,7 @@ private:
     QPushButton *primaryStartButton_ = nullptr;
     QProcess *proxyProcess_ = nullptr;
     NotificationCenter *notifications_ = nullptr;
+    WebDashboardServer *webDashboard_ = nullptr;
     bool proxyRunning_ = false;
 
     QString theme_ = QStringLiteral("system");

@@ -223,3 +223,14 @@ notification.proxyStarted=代理已启动
 notification.proxyStopped=代理已停止
 notification.settingsSaved=设置已保存
 notification.exportSaved=数据包已导出
+
+web.title=NetTool ζ · 本地仪表盘
+web.subtitle=实时查看代理状态与最近数据包。
+web.proxy=代理
+web.sessions=会话
+web.packets=数据包
+web.recent=最近数据包
+web.empty=暂无数据包。
+web.running=运行中
+web.offline=未启动
+web.footer=NetTool ζ · 仅监听 127.0.0.1

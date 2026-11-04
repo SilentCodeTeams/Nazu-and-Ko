@@ -21,6 +21,8 @@ add_executable(nettool-qt
     src/PacketEditor.h
     src/NotificationCenter.cpp
     src/NotificationCenter.h
+    src/WebDashboard.cpp
+    src/WebDashboard.h
 )
 
 target_link_libraries(nettool-qt PRIVATE Qt6::Widgets Qt6::Network)

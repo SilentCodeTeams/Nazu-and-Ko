@@ -17,11 +17,11 @@ and UI clients.
   JSON-lines authentication and dry-run MAC leases.
 - Qt 6 Widgets client: redesigned dashboard, key=value i18n (zh-CN/en), live
   `nettoold proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
-  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export and proxy
-  rule wiring.
+  PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export, proxy
+  rule wiring and a loopback web dashboard.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
 - 62 tests; rustfmt and clippy clean; CI green on macOS, Windows and Linux.
-- Not yet: full legacy tool-option parity, Qt web dashboard, daemon
+- Not yet: deeper legacy tool-option parity, notification animation, daemon
   proxy-session commands, privileged MAC helper, TLS MITM, HTTP/2 HPACK,
   HTTP/3 over QUIC, Minecraft compression and login state, plugin runtime.
 

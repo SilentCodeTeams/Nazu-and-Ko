@@ -3,6 +3,7 @@
 #include "Dialogs.h"
 #include "NotificationCenter.h"
 #include "PacketEditor.h"
+#include "WebDashboard.h"
 #include "Tools.h"
 #include "Translator.h"
 
@@ -183,6 +184,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     QSettings settings;
     theme_ = settings.value(QStringLiteral("ui/theme"), QStringLiteral("system")).toString();
     notifications_ = new NotificationCenter(this);
+    webDashboard_ = new WebDashboardServer(this);
 
     createMenus();
     createToolBar();
@@ -190,6 +192,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     createStatusBar();
     setCentralWidget(createDashboard());
     setTheme(theme_);
+    configureWebDashboard();
+    updateWebDashboard();
 }
 
 QString MainWindow::t(const QString &key) const {
@@ -583,6 +587,39 @@ void MainWindow::setProxyRunning(bool running) {
                                         : t("dashboard.card.proxy.value"));
     }
     statusLabel_->setText(running ? t("status.proxyRunning") : t("status.proxyStopped"));
+    updateWebDashboard();
+}
+
+void MainWindow::configureWebDashboard() {
+    if (!webDashboard_) {
+        return;
+    }
+    if (webDashboard_->isRunning()) {
+        webDashboard_->stop();
+    }
+    QSettings settings;
+    if (!settings.value(QStringLiteral("web/enabled"), true).toBool()) {
+        return;
+    }
+    const int port = settings.value(QStringLiteral("web/port"), 2679).toInt();
+    webDashboard_->start(static_cast<quint16>(port));
+}
+
+void MainWindow::updateWebDashboard() {
+    if (!webDashboard_ || !webDashboard_->isRunning() || !packetTable_) {
+        return;
+    }
+    QStringList rows;
+    const int first = qMax(0, packetTable_->rowCount() - 100);
+    for (int row = first; row < packetTable_->rowCount(); ++row) {
+        QStringList cells;
+        for (int column = 0; column < packetTable_->columnCount(); ++column) {
+            const QTableWidgetItem *item = packetTable_->item(row, column);
+            cells << (item ? item->text() : QString());
+        }
+        rows << cells.join(QLatin1Char('\t'));
+    }
+    webDashboard_->setSnapshot(proxyRunning_, 0, packetCount_, rows);
 }
 
 void MainWindow::addPacketLine(const QString &line) {
@@ -629,6 +666,7 @@ void MainWindow::addPacketLine(const QString &line) {
     }
     packetCountLabel_->setText(t("status.packetCount").arg(packetCount_));
     statusLabel_->setText(t("status.packetCount").arg(packetCount_));
+    updateWebDashboard();
 }
 
 void MainWindow::startProxy() {
@@ -740,6 +778,7 @@ void MainWindow::clearPackets() {
     requestEditor_->clear();
     responseEditor_->clear();
     statusLabel_->setText(t("status.cleared"));
+    updateWebDashboard();
 }
 
 void MainWindow::exportPackets() {
@@ -895,6 +934,8 @@ void MainWindow::showSettings() {
     QApplication::setFont(font);
     statusLabel_->setText(t("dialog.settings.saved"));
     notifications_->show(t("notification.settingsSaved"), NotificationCenter::Level::Success);
+    configureWebDashboard();
+    updateWebDashboard();
 }
 
 void MainWindow::showTutorial() {

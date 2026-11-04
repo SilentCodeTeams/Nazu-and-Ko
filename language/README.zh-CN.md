@@ -15,10 +15,10 @@ NetTool 原型，做到零外部依赖、跨平台，并且把后台与 UI 客�
   JSON lines 鉴权、dry-run MAC 租约。
 - Qt 6 Widgets 客户端：重做 dashboard、key=value 国际化（zh-CN/en）、
   真实 nettoold proxy 输出与数据包行、Repeater/规则/Intruder/Scanner、
-  PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出和代理规则接入。
+  PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出、代理规则接入和本地 Web 仪表盘。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
 - 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
-- 尚未完成：完整工具选项对齐、Qt Web 仪表盘、daemon proxy session 命令、
+- 尚未完成：更深的工具选项对齐、通知动画、daemon proxy session 命令、
   特权 MAC helper、TLS MITM、HTTP/2 HPACK、HTTP/3、Minecraft 压缩与登录状态、
   插件运行时。
 
