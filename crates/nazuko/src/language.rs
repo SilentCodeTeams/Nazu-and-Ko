@@ -35,6 +35,7 @@ pub enum Selection {
 struct Config {
     language: Option<String>,
     language_file: Option<PathBuf>,
+    language_detect: Option<bool>,
 }
 
 pub fn resolve(
@@ -50,6 +51,7 @@ pub fn resolve(
 
     let config_path = config_path();
     let config = read_config(&config_path);
+    let detect_ip = config.language_detect.unwrap_or_else(ip_detection_from_env);
     if let Some(path) = config.language_file {
         return custom_selection(resolve_path(&path, config_path.parent()));
     }
@@ -63,10 +65,13 @@ pub fn resolve(
             return Ok(Selection::Builtin(code.to_string()));
         }
     }
-    let country = country_code();
-    let code = language_for_country(&country)
-        .or_else(system_language)
-        .unwrap_or("en");
+    let code = if detect_ip {
+        language_for_country(&country_code())
+    } else {
+        None
+    }
+    .or_else(system_language)
+    .unwrap_or("en");
     Ok(Selection::Builtin(code.to_string()))
 }
 
@@ -144,6 +149,13 @@ fn read_config(path: &Path) -> Config {
         match key.trim() {
             "language" => config.language = Some(value),
             "language_file" => config.language_file = Some(PathBuf::from(value)),
+            "language_detect" => {
+                config.language_detect = match value.to_ascii_lowercase().as_str() {
+                    "off" | "false" | "0" | "no" => Some(false),
+                    "on" | "true" | "1" | "yes" | "auto" => Some(true),
+                    _ => config.language_detect,
+                };
+            }
             _ => {}
         }
     }
@@ -189,16 +201,31 @@ fn write_cached_country(path: &Path, code: &str) {
     let _ = fs::write(path, format!("{code}\n"));
 }
 
+#[derive(Debug, Clone, Copy)]
+enum BodyFormat {
+    Plain,
+    CloudflareTrace,
+}
+
 fn fetch_country() -> String {
-    for url in ["https://ipapi.co/country/", "https://ipinfo.io/country"] {
-        if let Some(code) = curl_country(url) {
+    let providers = [
+        ("https://ipapi.co/country/", BodyFormat::Plain),
+        ("https://ipinfo.io/country", BodyFormat::Plain),
+        (
+            "https://www.cloudflare.com/cdn-cgi/trace",
+            BodyFormat::CloudflareTrace,
+        ),
+        ("https://ifconfig.co/country-iso", BodyFormat::Plain),
+    ];
+    for (url, format) in providers {
+        if let Some(code) = curl_country(url, format) {
             return code;
         }
     }
     String::new()
 }
 
-fn curl_country(url: &str) -> Option<String> {
+fn curl_country(url: &str, format: BodyFormat) -> Option<String> {
     let output = Command::new("curl")
         .args(["-fsS", "--max-time", "2", "-A", "nazuko/0.1", url])
         .output()
@@ -206,10 +233,29 @@ fn curl_country(url: &str) -> Option<String> {
     if !output.status.success() {
         return None;
     }
-    let code = String::from_utf8_lossy(&output.stdout)
-        .trim()
-        .to_ascii_uppercase();
+    parse_country(format, &String::from_utf8_lossy(&output.stdout))
+}
+
+fn parse_country(format: BodyFormat, body: &str) -> Option<String> {
+    let code = match format {
+        BodyFormat::Plain => body.trim().to_ascii_uppercase(),
+        BodyFormat::CloudflareTrace => body
+            .lines()
+            .find_map(|line| line.strip_prefix("loc="))?
+            .trim()
+            .to_ascii_uppercase(),
+    };
     valid_country(&code).then_some(code)
+}
+
+fn ip_detection_from_env() -> bool {
+    match env::var("NAZUKO_LANG_DETECT") {
+        Ok(value) => !matches!(
+            value.trim().to_ascii_lowercase().as_str(),
+            "off" | "false" | "0" | "no"
+        ),
+        Err(_) => true,
+    }
 }
 
 fn valid_country(code: &str) -> bool {
@@ -266,8 +312,22 @@ mod tests {
         let config = Config {
             language: Some("zh-TW".to_string()),
             language_file: None,
+            language_detect: None,
         };
         assert_eq!(config.language.as_deref(), Some("zh-TW"));
+    }
+
+    #[test]
+    fn parses_country_provider_bodies() {
+        assert_eq!(
+            parse_country(BodyFormat::Plain, " cn\n"),
+            Some("CN".to_string())
+        );
+        assert_eq!(
+            parse_country(BodyFormat::CloudflareTrace, "fl=1\nip=1.2.3.4\nloc=TW\n"),
+            Some("TW".to_string())
+        );
+        assert_eq!(parse_country(BodyFormat::Plain, "unknown"), None);
     }
 
     #[test]
