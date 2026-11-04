@@ -92,7 +92,9 @@ fn main() {
         }
     };
     if let Err(e) = result {
-        eprintln!("{}{e}", i18n::t("cli.error.prefix"));
+        let prefix = i18n::t("cli.error.prefix");
+        let separator = if prefix.ends_with(':') { " " } else { "" };
+        eprintln!("{prefix}{separator}{e}");
         std::process::exit(1);
     }
 }
