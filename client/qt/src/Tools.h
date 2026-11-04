@@ -7,6 +7,7 @@ class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
+class QListWidget;
 class QNetworkAccessManager;
 class QNetworkReply;
 class QPlainTextEdit;
@@ -23,6 +24,8 @@ public:
 private:
     void sendRequest();
     void onFinished(QNetworkReply *reply);
+    void saveHistory();
+    void loadHistory();
 
     QComboBox *method_ = nullptr;
     QLineEdit *url_ = nullptr;
@@ -33,6 +36,8 @@ private:
     QPushButton *send_ = nullptr;
     QCheckBox *followRedirects_ = nullptr;
     QSpinBox *timeout_ = nullptr;
+    QListWidget *history_ = nullptr;
+    QList<QStringList> historyEntries_;
     QNetworkAccessManager *manager_ = nullptr;
 };
 

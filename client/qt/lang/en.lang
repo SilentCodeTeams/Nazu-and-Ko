@@ -165,6 +165,7 @@ unit.ms=ms
 tools.repeater.title=Repeater
 tools.repeater.followRedirects=Follow redirects
 tools.repeater.timeout=Timeout
+tools.repeater.history=Request history
 tools.repeater.urlPlaceholder=http://example.com/api
 tools.repeater.send=Send
 tools.repeater.headers=Request headers

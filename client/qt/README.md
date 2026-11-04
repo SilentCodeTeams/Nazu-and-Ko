@@ -34,7 +34,7 @@ Implemented:
 - Proxy configuration, preferences and language selection
 - Start/stop of the Rust `nettoold proxy` process, with captured packet rows
 - Repeater, Rules, Intruder and Scanner dialogs
-- Repeater redirect/timeout options
+- Repeater redirect/timeout options and a 20-entry request history
 - Intruder and Scanner concurrency, delay and stop controls
 - Intruder raw HTTP-template mode with a §payload§ marker
 - Notification enable/duration/placement/animation settings, honoured by the toast centre

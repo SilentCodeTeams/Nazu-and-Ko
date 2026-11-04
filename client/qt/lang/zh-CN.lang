@@ -165,6 +165,7 @@ unit.ms=ms
 tools.repeater.title=Repeater
 tools.repeater.followRedirects=跟随重定向
 tools.repeater.timeout=超时
+tools.repeater.history=请求历史
 tools.repeater.urlPlaceholder=http://example.com/api
 tools.repeater.send=发送
 tools.repeater.headers=请求头

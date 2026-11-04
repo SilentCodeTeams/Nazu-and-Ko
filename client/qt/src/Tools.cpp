@@ -12,6 +12,7 @@
 #include <QHeaderView>
 #include <QLabel>
 #include <QLineEdit>
+#include <QListWidget>
 #include <QMessageBox>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -116,6 +117,12 @@ RepeaterDialog::RepeaterDialog(QWidget *parent) : QDialog(parent) {
     options->addStretch(1);
     layout->addLayout(options);
 
+    layout->addWidget(new QLabel(translate("tools.repeater.history"), this));
+    history_ = new QListWidget(this);
+    history_->setMaximumHeight(78);
+    connect(history_, &QListWidget::itemDoubleClicked, this, &RepeaterDialog::loadHistory);
+    layout->addWidget(history_);
+
     auto *splitter = new QSplitter(Qt::Vertical, this);
     auto *request = new QWidget(splitter);
     auto *requestLayout = new QVBoxLayout(request);
@@ -206,7 +213,34 @@ void RepeaterDialog::onFinished(QNetworkReply *reply) {
     response_->setPlainText(text);
     status_->setText(httpStatus(reply) + QStringLiteral(" · %1 B").arg(body.size()));
     send_->setEnabled(true);
+    saveHistory();
     reply->deleteLater();
+}
+
+void RepeaterDialog::saveHistory() {
+    historyEntries_.prepend({method_->currentText(), url_->text(), status_->text(),
+                             headers_->toPlainText(), body_->toPlainText()});
+    history_->insertItem(0, QStringLiteral("%1 %2  ·  %3")
+                                .arg(method_->currentText(), url_->text(), status_->text()));
+    while (history_->count() > 20) {
+        history_->takeItem(history_->count() - 1);
+        historyEntries_.removeLast();
+    }
+}
+
+void RepeaterDialog::loadHistory() {
+    const int index = history_->currentRow();
+    if (index < 0 || index >= historyEntries_.size()) {
+        return;
+    }
+    const QStringList entry = historyEntries_.at(index);
+    if (entry.size() < 5) {
+        return;
+    }
+    method_->setCurrentText(entry.at(0));
+    url_->setText(entry.at(1));
+    headers_->setPlainText(entry.at(3));
+    body_->setPlainText(entry.at(4));
 }
 
 RuleManagerDialog::RuleManagerDialog(QWidget *parent) : QDialog(parent) {
