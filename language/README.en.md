@@ -60,6 +60,13 @@ From the repository root:
     cargo test --workspace
     cargo build --release
 
+Install the CLI:
+
+    cargo install --path crates/nazuko
+    nazuko version
+
+Make sure `~/.cargo/bin` is on `PATH`.
+
 Qt client:
 
     cmake -S client/qt -B build/qt \

@@ -57,6 +57,13 @@ HTTP/3 目前只做 QUIC 检测。完整 HTTP/3 需要 QUIC 栈和 TLS 1.3 密�
     cargo test --workspace
     cargo build --release
 
+安装 CLI：
+
+    cargo install --path crates/nazuko
+    nazuko version
+
+确保 `~/.cargo/bin` 在 `PATH` 中。
+
 Qt 客户端：
 
     cmake -S client/qt -B build/qt \
