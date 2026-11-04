@@ -33,7 +33,7 @@ Implemented:
 - Key=value localisation with Chinese and English UI strings
 - Proxy configuration, preferences and language selection
 - Start/stop of the Rust `nettoold proxy` process, with captured packet rows
-- Repeater, Rules, Intruder and Scanner dialogs
+- Repeater, Rules, Intruder and Scanner dialogs; JSON rule import/export
 - Repeater redirect/timeout options and a 20-entry request history
 - Intruder and Scanner concurrency, delay and stop controls
 - Intruder raw HTTP-template mode with a §payload§ marker

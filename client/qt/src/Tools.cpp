@@ -6,10 +6,15 @@
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
+#include <QFile>
+#include <QFileDialog>
 #include <QFont>
 #include <QFontDatabase>
 #include <QHBoxLayout>
 #include <QHeaderView>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
@@ -261,14 +266,20 @@ RuleManagerDialog::RuleManagerDialog(QWidget *parent) : QDialog(parent) {
     auto *actions = new QHBoxLayout();
     auto *add = new QPushButton(translate("tools.rules.add"), this);
     auto *remove = new QPushButton(translate("tools.rules.remove"), this);
+    auto *importButton = new QPushButton(translate("tools.rules.import"), this);
+    auto *exportButton = new QPushButton(translate("tools.rules.export"), this);
     auto *save = primaryButton(translate("button.save"), this);
     auto *close = new QPushButton(translate("common.close"), this);
     connect(add, &QPushButton::clicked, this, &RuleManagerDialog::addRule);
     connect(remove, &QPushButton::clicked, this, &RuleManagerDialog::removeRule);
+    connect(importButton, &QPushButton::clicked, this, &RuleManagerDialog::importRules);
+    connect(exportButton, &QPushButton::clicked, this, &RuleManagerDialog::exportRules);
     connect(save, &QPushButton::clicked, this, &RuleManagerDialog::saveRules);
     connect(close, &QPushButton::clicked, this, &QDialog::reject);
     actions->addWidget(add);
     actions->addWidget(remove);
+    actions->addWidget(importButton);
+    actions->addWidget(exportButton);
     actions->addStretch(1);
     actions->addWidget(save);
     actions->addWidget(close);
@@ -316,6 +327,56 @@ void RuleManagerDialog::saveRules() {
     }
     QSettings().setValue(QStringLiteral("rules/items"), saved);
     accept();
+}
+
+void RuleManagerDialog::importRules() {
+    const QString path = QFileDialog::getOpenFileName(
+        this, translate("tools.rules.import"), QString(),
+        translate("tools.rules.filter"));
+    if (path.isEmpty()) {
+        return;
+    }
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    const QJsonDocument document = QJsonDocument::fromJson(file.readAll());
+    if (!document.isArray()) {
+        return;
+    }
+    table_->setRowCount(0);
+    for (const QJsonValue &value : document.array()) {
+        const QJsonObject object = value.toObject();
+        const int row = table_->rowCount();
+        table_->insertRow(row);
+        table_->setItem(row, 0, new QTableWidgetItem(object.value(QStringLiteral("name")).toString()));
+        table_->setItem(row, 1, new QTableWidgetItem(object.value(QStringLiteral("expression")).toString()));
+        table_->setItem(row, 2, new QTableWidgetItem(object.value(QStringLiteral("action")).toString()));
+    }
+}
+
+void RuleManagerDialog::exportRules() {
+    const QString path = QFileDialog::getSaveFileName(
+        this, translate("tools.rules.export"), QStringLiteral("rules.json"),
+        translate("tools.rules.filter"));
+    if (path.isEmpty()) {
+        return;
+    }
+    QJsonArray array;
+    for (int row = 0; row < table_->rowCount(); ++row) {
+        QJsonObject object;
+        object.insert(QStringLiteral("name"),
+                      table_->item(row, 0) ? table_->item(row, 0)->text() : QString());
+        object.insert(QStringLiteral("expression"),
+                      table_->item(row, 1) ? table_->item(row, 1)->text() : QString());
+        object.insert(QStringLiteral("action"),
+                      table_->item(row, 2) ? table_->item(row, 2)->text() : QString());
+        array.append(object);
+    }
+    QFile file(path);
+    if (file.open(QIODevice::WriteOnly)) {
+        file.write(QJsonDocument(array).toJson(QJsonDocument::Indented));
+    }
 }
 
 IntruderDialog::IntruderDialog(QWidget *parent) : QDialog(parent) {

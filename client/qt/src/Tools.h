@@ -51,6 +51,8 @@ private:
     void addRule();
     void removeRule();
     void saveRules();
+    void importRules();
+    void exportRules();
 
     QTableWidget *table_ = nullptr;
     int ruleCounter_ = 1;
