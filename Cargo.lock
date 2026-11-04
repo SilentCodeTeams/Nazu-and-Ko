@@ -3,6 +3,16 @@
 version = 4
 
 [[package]]
+name = "nazuko"
+version = "0.1.0"
+dependencies = [
+ "nettool-capture",
+ "nettool-control",
+ "nettool-proto",
+ "nettool-proxy",
+]
+
+[[package]]
 name = "nettool-capture"
 version = "0.1.0"
 dependencies = [
@@ -31,14 +41,4 @@ name = "nettool-rules"
 version = "0.1.0"
 dependencies = [
  "nettool-proto",
-]
-
-[[package]]
-name = "nettoold"
-version = "0.1.0"
-dependencies = [
- "nettool-capture",
- "nettool-control",
- "nettool-proto",
- "nettool-proxy",
 ]

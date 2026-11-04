@@ -16,7 +16,7 @@
         ^
         |
     nettool-control       control types, no I/O
-    nettoold              CLI now, daemon API next
+    nazuko              CLI now, daemon API next
     clients               Qt 6 / CLI / tests, separate processes
 
 Dependencies point one way. The protocol crate has no I/O and no external
@@ -58,12 +58,12 @@ an explicit framed-forwarding mode for packet-id drop rules in a later phase.
 
 ## Process boundary
 
-    Qt client  --control API-->  nettoold  --helper API-->  nettool-macd
+    Qt client  --control API-->  nazuko  --helper API-->  nettool-macd
                                  (capture,     (MAC leases,
                                   proxy)        audit, restore)
 
 - Qt client: separate process, no link to the Rust core.
-- nettoold: daemon. A crash stops capture/proxy sessions but does not release
+- nazuko: daemon. A crash stops capture/proxy sessions but does not release
   existing MAC leases.
 - nettool-macd: privileged helper. It survives UI and daemon restarts; a lease
   ends only by explicit release or explicit helper shutdown.

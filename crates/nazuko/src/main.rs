@@ -1,15 +1,15 @@
-//! nettoold: Phase 0 CLI.
+//! nazuko: Phase 0 CLI.
 //!
-//!   nettoold proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566
+//!   nazuko proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566
 //!                  [--protocol auto|mc|http|tls|dns|ws|quic|raw]
 //!                  [--pcap out.pcap] [--duration 10] [--quiet]
 //!                  [--drop-direction c2s|s2c]
 //!
-//!   nettoold serve [--bind 127.0.0.1:0] [--state <file>]
+//!   nazuko serve [--bind 127.0.0.1:0] [--state <file>]
 //!
-//!   nettoold analyze out.pcap [--hex]
+//!   nazuko analyze out.pcap [--hex]
 //!
-//!   nettoold version
+//!   nazuko version
 
 mod daemon;
 
@@ -36,7 +36,7 @@ fn main() {
         Some("serve") => cmd_serve(&args[1..]),
         Some("analyze") => cmd_analyze(&args[1..]),
         Some("version") | Some("--version") | Some("-V") => {
-            println!("nettoold {}", env!("CARGO_PKG_VERSION"));
+            println!("nazuko {}", env!("CARGO_PKG_VERSION"));
             Ok(())
         }
         Some("help") | Some("--help") | Some("-h") | None => {
@@ -143,7 +143,7 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         rules,
         duration,
     };
-    println!("nettoold proxy");
+    println!("nazuko proxy");
     println!("  listen: {}", config.listen);
     println!("  target: {}:{}", config.target_host, config.target_port);
     if !config.rules.is_empty() {
@@ -162,9 +162,9 @@ fn cmd_serve(args: &[String]) -> CliResult {
         .map_err(|_| invalid("bad --bind address".to_string()))?;
     let state_path = take_flag(args, "--state")
         .map(PathBuf::from)
-        .unwrap_or_else(|| env::temp_dir().join(format!("nettoold-{}.state", std::process::id())));
+        .unwrap_or_else(|| env::temp_dir().join(format!("nazuko-{}.state", std::process::id())));
     let daemon = daemon::Daemon::bind(bind, state_path.clone())?;
-    println!("nettoold control server");
+    println!("nazuko control server");
     println!("  bind: {}", daemon.local_addr()?);
     println!("  state: {}", state_path.display());
     daemon.run()?;
@@ -175,7 +175,7 @@ fn cmd_analyze(args: &[String]) -> CliResult {
     let path = args
         .iter()
         .find(|a| !a.starts_with('-'))
-        .ok_or_else(|| invalid("usage: nettoold analyze <file.pcap> [--hex]".to_string()))?;
+        .ok_or_else(|| invalid("usage: nazuko analyze <file.pcap> [--hex]".to_string()))?;
     let hex = has_flag(args, "--hex");
     let dissect = has_flag(args, "--dissect");
     let file = File::open(path)?;
@@ -239,13 +239,13 @@ fn preview(data: &[u8]) -> String {
 
 fn usage() {
     println!(
-        "nettoold {}\n\
+        "nazuko {}\n\
          \n\
          USAGE:\n\
-         \x20 nettoold proxy [options]\n\
-         \x20 nettoold serve [--bind 127.0.0.1:0] [--state <file>]\n\
-         \x20 nettoold analyze <file.pcap> [--hex] [--dissect]\n\
-         \x20 nettoold version\n\
+         \x20 nazuko proxy [options]\n\
+         \x20 nazuko serve [--bind 127.0.0.1:0] [--state <file>]\n\
+         \x20 nazuko analyze <file.pcap> [--hex] [--dissect]\n\
+         \x20 nazuko version\n\
          \n\
          PROXY OPTIONS:\n\
          \x20 --listen <addr>          default 127.0.0.1:25565\n\

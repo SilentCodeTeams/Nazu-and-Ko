@@ -75,10 +75,10 @@ in languages.conf.
 ## Status of this port
 
 Implemented: main window, dashboard, docks, themes, filtering, zoom, proxy
-configuration, preferences, language selection, live output from nettoold proxy,
+configuration, preferences, language selection, live output from nazuko proxy,
 packet rows, Repeater, Rules, Intruder and Scanner dialogs, PacketEditor
 Raw/Hex/JSON/HTTP tabs, toast notifications, smart CSV/JSON/TSV export, and
-rules passed to nettoold proxy.
+rules passed to nazuko proxy.
 
 Still to port: deeper legacy tool-option parity and richer web dashboard history.
 These remain functional gaps, not "porting in progress" message boxes.

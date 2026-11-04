@@ -88,7 +88,7 @@ status.exported=Packets exported
 status.proxyRunning=Proxy started
 status.proxyStopped=Proxy stopped
 status.proxyStartFailed=Could not start the proxy: %1
-status.proxyBinaryMissing=The nettoold executable was not found. Build the Rust backend or set NETTOOL_BIN.
+status.proxyBinaryMissing=The nazuko executable was not found. Build the Rust backend or set NAZUKO_BIN.
 status.zoomed=Zoom: %1%
 status.zoomReset=Zoom reset
 
@@ -253,7 +253,7 @@ v2.nav.attack=Attack
 v2.nav.scan=Scan
 v2.nav.tools=Tools
 v2.nav.settings=Settings
-v2.home.eyebrow=NETTOOL / LOCAL WORKSPACE
+v2.home.eyebrow=NAZUKO / LOCAL WORKSPACE
 v2.home.title=What do you want to do today?
 v2.home.subtitle=Pick an entry point or describe a goal. Evidence opens in the task workspace.
 v2.home.prompt=Describe a goal, e.g. inspect unusual traffic on port 8080

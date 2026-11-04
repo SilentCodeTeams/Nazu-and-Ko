@@ -257,7 +257,7 @@ mod tests {
             .unwrap_or_default()
             .as_nanos();
         std::env::temp_dir().join(format!(
-            "nettoold-test-{}-{}-{}.state",
+            "nazuko-test-{}-{}-{}.state",
             std::process::id(),
             name,
             nanos

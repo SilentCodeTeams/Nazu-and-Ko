@@ -84,8 +84,9 @@ the Nazu&Ko network path.
 - [x] Replace Apache-2.0 with AGPL-3.0-or-later.
 - [x] Add NOTICE with SilentStudio attribution.
 - [x] Rename visible Python UI title/about/export names.
-- [ ] Internal crate and binary rename (`nettool-*`, `nettoold`) with a
-      compatibility period.
+- [x] Rename the user-facing binary `nettoold` to `nazuko`; retire the old
+      binary name.
+- [ ] Rename the remaining `nettool-*` crate names.
 - [ ] Retire remaining web-dashboard code in the frozen Qt client.
 - [ ] Migrate Python config path to `~/.config/nazuko/` while importing the
       old config on first run.

@@ -6,7 +6,7 @@ members = [
     "crates/nettool-capture",
     "crates/nettool-proxy",
     "crates/nettool-control",
-    "crates/nettoold",
+    "crates/nazuko",
 ]
 
 [workspace.package]

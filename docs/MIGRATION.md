@@ -24,7 +24,7 @@
     detect-and-reconnect race           removed: target port is fixed
     fake .pcap export                   nettool-capture::PcapWriter (real pcap)
     pcap + console side effects         PacketEvent + EventSink
-    SmartExportDialog (GUI)             nettoold analyze (offline CLI)
+    SmartExportDialog (GUI)             nazuko analyze (offline CLI)
     Intruder / Scanner dialogs          future: Rust engine + UI client
     Web dashboard                       removed; no web UI
     GUI state tied to the process       Qt client over daemon API

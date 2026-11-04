@@ -17,7 +17,7 @@ implementation and a clean process boundary between the backend and UI clients.
 - Phase 2 daemon control server MVP: loopback TCP, 0600 token state file,
   JSON-lines authentication and dry-run MAC leases.
 - Qt 6 Widgets client: redesigned dashboard, key=value i18n (zh-CN/en), live
-  `nettoold proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
+  `nazuko proxy` output with packet rows, Repeater/Rules/Intruder/Scanner,
   PacketEditor Raw/Hex/JSON/HTTP tabs, notifications, smart export and proxy
   rule wiring.
 - Protocol dissectors: TLS/SSL, HTTP, DNS, QUIC, WebSocket, Minecraft.
@@ -61,20 +61,22 @@ Quality gates:
 
 ## CLI
 
-    ./target/release/nettoold proxy \
+`nazuko` is the only installed user-facing CLI. The legacy `nettoold` name is retired and no `nettoold` binary is built. The local control server currently starts via `nazuko serve`; if it is split into a separate daemon later, the internal process name will be `nazukod`, not the user CLI.
+
+    ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \
       --protocol auto \
       --pcap capture.pcap
 
-    ./target/release/nettoold proxy --duration 10 ...
+    ./target/release/nazuko proxy --duration 10 ...
 
-    ./target/release/nettoold proxy \
+    ./target/release/nazuko proxy \
       --rule 'drop dir=c2s proto=mc contains=hello' ...
 
-    ./target/release/nettoold serve --state nettoold.state
+    ./target/release/nazuko serve --state nazuko.state
 
-    ./target/release/nettoold analyze capture.pcap --hex --dissect
+    ./target/release/nazuko analyze capture.pcap --hex --dissect
 
 | Option | Default | Description |
 | --- | --- | --- |
@@ -100,7 +102,7 @@ See ../docs/RULES.md for syntax, event reporting and safety.
 
 ### Control server
 
-    ./target/release/nettoold serve --state nettoold.state
+    ./target/release/nazuko serve --state nazuko.state
 
 Loopback only. The daemon writes port and token to a 0600 state file and speaks
 JSON lines. The MVP implements list_sessions (empty), acquire_mac dry-run,
@@ -121,7 +123,7 @@ Example output:
     crates/nettool-capture   pcap writer/reader, synthetic TCP frames
     crates/nettool-proxy     TCP relay, EventSink fan-out, direction drops, rules
     crates/nettool-control   control types, session and MAC lease state machine
-    crates/nettoold          CLI and local control server
+    crates/nazuko          CLI and local control server
     client/qt                Qt 6 Widgets client (main window port)
     ../docs/PROTOCOL.md         wire formats, versions and proxy semantics
     ../docs/RULES.md            packet rule syntax, semantics and safety
@@ -137,7 +139,7 @@ Example output:
 ## Design
 
 - Rust-first. C is reserved for OS shims, not for parsing untrusted bytes.
-- UI and backend are separate processes: Qt 6 client -> nettoold daemon ->
+- UI and backend are separate processes: Qt 6 client -> nazuko daemon ->
   privileged helper. A UI crash does not stop capture or MAC leases.
 - MAC identity is owned by a privileged helper with explicit leases, audit and
   restore. Leases end only on explicit release or helper shutdown.

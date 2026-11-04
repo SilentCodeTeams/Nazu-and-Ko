@@ -34,7 +34,7 @@ Implemented:
 - Light/dark/system themes, filtering and zoom
 - Key=value localisation with Chinese and English UI strings
 - Proxy configuration, preferences and language selection
-- Start/stop of the Rust `nettoold proxy` process, with captured packet rows
+- Start/stop of the Rust `nazuko proxy` process, with captured packet rows
 - Repeater, Rules, Intruder and Scanner dialogs; JSON rule import/export
 - Repeater redirect/timeout options and a 20-entry request history
 - Intruder and Scanner concurrency, delay and stop controls
@@ -45,7 +45,7 @@ Implemented:
 - Loopback web dashboard at / and /api/status
 - Toast notification centre
 - Smart export in CSV, JSON and TSV, all rows or visible rows
-- Rules saved in the Rules dialog are passed to `nettoold proxy --rule`
+- Rules saved in the Rules dialog are passed to `nazuko proxy --rule`
 
 Known gaps from full legacy parity:
 

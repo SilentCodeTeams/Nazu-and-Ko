@@ -16,7 +16,7 @@ Nazu&Ko 是用于网络协议分析与授权安全测试的 Rust 核心。它接
 - Phase 2 daemon 控制服务器 MVP：loopback TCP、0600 token state file、
   JSON lines 鉴权、dry-run MAC 租约。
 - Qt 6 Widgets 客户端：重做 dashboard、key=value 国际化（zh-CN/en）、
-  真实 nettoold proxy 输出与数据包行、Repeater/规则/Intruder/Scanner、
+  真实 nazuko proxy 输出与数据包行、Repeater/规则/Intruder/Scanner、
   PacketEditor Raw/Hex/JSON/HTTP 标签、通知、智能导出和代理规则接入。
 - 协议解析：TLS/SSL、HTTP、DNS、QUIC、WebSocket、Minecraft。
 - 62 个测试；rustfmt 与 clippy 通过；macOS、Windows、Linux 三平台 CI 全绿。
@@ -58,20 +58,22 @@ Qt 客户端：
 
 ## 命令行
 
-    ./target/release/nettoold proxy \
+`nazuko` 是唯一安装的用户 CLI。旧 `nettoold` 名称已退役，不再生成同名二进制。当前本地控制服务器通过 `nazuko serve` 启动；如果以后拆成独立 daemon，内部进程名为 `nazukod`，不占用用户 CLI。
+
+    ./target/release/nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \
       --protocol auto \
       --pcap capture.pcap
 
-    ./target/release/nettoold proxy --duration 10 ...
+    ./target/release/nazuko proxy --duration 10 ...
 
-    ./target/release/nettoold proxy \
+    ./target/release/nazuko proxy \
       --rule 'drop dir=c2s proto=mc contains=hello' ...
 
-    ./target/release/nettoold serve --state nettoold.state
+    ./target/release/nazuko serve --state nazuko.state
 
-    ./target/release/nettoold analyze capture.pcap --hex --dissect
+    ./target/release/nazuko analyze capture.pcap --hex --dissect
 
 | 参数 | 默认值 | 说明 |
 | --- | --- | --- |
@@ -96,7 +98,7 @@ Qt 客户端：
 
 ### 控制服务器
 
-    ./target/release/nettoold serve --state nettoold.state
+    ./target/release/nazuko serve --state nazuko.state
 
 仅监听 loopback。daemon 把 port 与 token 写入 0600 state file，使用 JSON lines
 通信。MVP 已实现 list_sessions（空）、acquire_mac dry-run、release_mac、
@@ -117,7 +119,7 @@ list_leases 和 shutdown；proxy session 命令下一步接入。
     crates/nettool-capture   pcap 读写、合成 TCP 帧
     crates/nettool-proxy     TCP 转发、EventSink 分发、方向丢弃、规则判定
     crates/nettool-control   控制类型、会话与 MAC 租约状态机
-    crates/nettoold          CLI 与本地控制服务器
+    crates/nazuko          CLI 与本地控制服务器
     client/qt                Qt 6 Widgets 客户端（主窗口移植）
     docs/PROTOCOL.md         线格式、版本与代理语义
     docs/RULES.md            规则语法、语义与安全边界
@@ -133,7 +135,7 @@ list_leases 和 shutdown；proxy session 命令下一步接入。
 ## 设计
 
 - Rust 优先；C 只用于操作系统薄垫片，不用于解析不可信输入。
-- UI 与后台分离：Qt 6 客户端 -> nettoold daemon -> 特权 helper。UI 崩溃不会
+- UI 与后台分离：Qt 6 客户端 -> nazuko daemon -> 特权 helper。UI 崩溃不会
   停止抓包或释放 MAC 租约。
 - MAC 由独立特权 helper 管理：显式租约、审计、可恢复；只有显式 release 或
   helper shutdown 才结束。

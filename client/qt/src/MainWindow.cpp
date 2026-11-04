@@ -713,18 +713,18 @@ QFrame *MainWindow::createMetricCard(const QString &title, const QString &value,
 
 QString MainWindow::findProxyBinary() const {
     QStringList candidates;
-    const QString environment = qEnvironmentVariable("NETTOOL_BIN");
+    const QString environment = qEnvironmentVariable("NAZUKO_BIN");
     if (!environment.isEmpty()) {
         candidates << environment;
     }
     const QString appDir = QCoreApplication::applicationDirPath();
-    candidates << appDir + QStringLiteral("/nettoold");
-    candidates << appDir + QStringLiteral("/nettoold.exe");
-    candidates << appDir + QStringLiteral("/../../target/release/nettoold");
-    candidates << appDir + QStringLiteral("/../../target/debug/nettoold");
-    candidates << appDir + QStringLiteral("/../../target/release/nettoold.exe");
-    candidates << appDir + QStringLiteral("/../../target/debug/nettoold.exe");
-    const QString fromPath = QStandardPaths::findExecutable(QStringLiteral("nettoold"));
+    candidates << appDir + QStringLiteral("/nazuko");
+    candidates << appDir + QStringLiteral("/nazuko.exe");
+    candidates << appDir + QStringLiteral("/../../target/release/nazuko");
+    candidates << appDir + QStringLiteral("/../../target/debug/nazuko");
+    candidates << appDir + QStringLiteral("/../../target/release/nazuko.exe");
+    candidates << appDir + QStringLiteral("/../../target/debug/nazuko.exe");
+    const QString fromPath = QStandardPaths::findExecutable(QStringLiteral("nazuko"));
     if (!fromPath.isEmpty()) {
         candidates << fromPath;
     }

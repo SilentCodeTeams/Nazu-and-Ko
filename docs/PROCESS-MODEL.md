@@ -12,13 +12,13 @@
     Process        Language   Privilege        Owns
     ------------   --------   --------------   -----------------------------
     Qt client      C++/Qt 6   user             views, dialogs, user input
-    nettoold       Rust       user             sessions, proxy, capture, rules
+    nazuko       Rust       user             sessions, proxy, capture, rules
     nettool-macd   Rust       root/admin       MAC leases, interface restore
     plugins        C ABI      daemon's user    dissectors, capture backends
 
 The Qt client never talks to nettool-macd directly. The path is:
 
-    Qt client -> nettoold control API -> nettool-macd helper API
+    Qt client -> nazuko control API -> nettool-macd helper API
 
 ## Crash and restart matrix
 
@@ -26,8 +26,8 @@ The Qt client never talks to nettool-macd directly. The path is:
     -----------------------  ---------------   --------------   -------------
     UI crash                 continues         continues        restart
     UI closed by user        continues         continues        closed
-    nettoold crash           stops             continues        reconnect
-    nettoold restart         new sessions      continues        reconnect
+    nazuko crash           stops             continues        reconnect
+    nazuko restart         new sessions      continues        reconnect
     nettool-macd crash       continues         restored/retry   shows error
     reboot                   stops             OS default       starts fresh
 
@@ -65,9 +65,9 @@ Rules:
 
 ## Service layout (planned)
 
-    macOS:   launchd daemon/agent for nettoold and nettool-macd
+    macOS:   launchd daemon/agent for nazuko and nettool-macd
     Linux:   systemd units, CAP_NET_RAW / CAP_NET_ADMIN
-    Windows: Windows service for nettoold and nettool-macd
+    Windows: Windows service for nazuko and nettool-macd
 
 The first implementation keeps both in the foreground for development and adds
 service packaging in Phase 3.

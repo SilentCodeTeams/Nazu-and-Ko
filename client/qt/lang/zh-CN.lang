@@ -88,7 +88,7 @@ status.exported=数据包已导出
 status.proxyRunning=代理已启动
 status.proxyStopped=代理已停止
 status.proxyStartFailed=无法启动代理：%1
-status.proxyBinaryMissing=找不到 nettoold 可执行文件；请先构建 Rust 后端，或设置 NETTOOL_BIN。
+status.proxyBinaryMissing=找不到 nazuko 可执行文件；请先构建 Rust 后端，或设置 NAZUKO_BIN。
 status.zoomed=缩放: %1%
 status.zoomReset=缩放已重置
 
@@ -253,7 +253,7 @@ v2.nav.attack=攻击
 v2.nav.scan=排查
 v2.nav.tools=工具
 v2.nav.settings=设置
-v2.home.eyebrow=NETTOOL / 本地工作台
+v2.home.eyebrow=NAZUKO / 本地工作台
 v2.home.title=今天，先做哪件事？
 v2.home.subtitle=选一个入口，或直接描述目标。专业证据会在任务页展开。
 v2.home.prompt=描述目标，例如：检查 8080 端口的异常流量

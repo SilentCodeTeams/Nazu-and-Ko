@@ -5,7 +5,7 @@ can allow or drop a chunk; it never rewrites bytes.
 
 ## CLI
 
-    nettoold proxy \
+    nazuko proxy \
       --listen 127.0.0.1:25565 \
       --target 127.0.0.1:25566 \
       --rule 'drop dir=c2s proto=mc contains=hello'

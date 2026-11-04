@@ -10,7 +10,7 @@ in lang/*.lang key=value files.
 - [x] Toast notification centre with enable, duration, placement and animation
 - [x] Smart export: CSV, JSON, TSV; all or visible rows
 - [x] Repeater: redirect/timeout options and request history
-- [x] Rules: add/remove, JSON import/export, expressions passed to nettoold proxy
+- [x] Rules: add/remove, JSON import/export, expressions passed to nazuko proxy
 - [x] Intruder: URL/FUZZ and raw HTTP template modes, concurrency, delay, stop
 - [x] Scanner: paths, concurrency, delay, stop
 - [x] Settings: theme, font, language, proxy, web, notifications, auto-start
