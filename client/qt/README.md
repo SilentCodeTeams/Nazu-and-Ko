@@ -34,7 +34,9 @@ Implemented:
 - Proxy configuration, preferences and language selection
 - Start/stop of the Rust `nettoold proxy` process, with captured packet rows
 - Repeater, Rules, Intruder and Scanner dialogs
-- Repeater redirect/timeout options; Intruder concurrency, delay and stop controls
+- Repeater redirect/timeout options
+- Intruder and Scanner concurrency, delay and stop controls
+- Notification placement setting, honoured by the toast centre
 - PacketEditor Raw/Hex/JSON/HTTP tabs with JSON/HTTP highlighting
 - Toast notification centre
 - Smart export in CSV, JSON and TSV, all rows or visible rows
@@ -43,7 +45,6 @@ Implemented:
 Known gaps from full legacy parity:
 
 - Intruder raw HTTP-template mode
-- Scanner advanced options and Settings notification placement
 - Legacy web dashboard
 - Additional translations beyond Chinese and English
 

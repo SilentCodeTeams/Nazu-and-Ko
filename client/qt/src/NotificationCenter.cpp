@@ -1,5 +1,7 @@
 #include "NotificationCenter.h"
 
+#include <algorithm>
+
 #include <QFrame>
 #include <QGraphicsOpacityEffect>
 #include <QGuiApplication>
@@ -7,6 +9,7 @@
 #include <QLabel>
 #include <QPropertyAnimation>
 #include <QScreen>
+#include <QSettings>
 #include <QTimer>
 #include <QWidget>
 
@@ -68,13 +71,28 @@ void NotificationCenter::reposition() {
         return;
     }
     const QRect area = screen->availableGeometry();
-    int bottom = area.bottom() - 24;
-    for (int index = active_.size() - 1; index >= 0; --index) {
-        QWidget *toast = active_.at(index);
+    QString position = QSettings().value(QStringLiteral("notification/position"),
+                                         QStringLiteral("auto")).toString();
+    if (position == QStringLiteral("auto")) {
+#ifdef Q_OS_DARWIN
+        position = QStringLiteral("top-right");
+#else
+        position = QStringLiteral("bottom-right");
+#endif
+    }
+    const bool top = position.startsWith(QStringLiteral("top"));
+    const bool left = position.endsWith(QStringLiteral("left"));
+
+    QList<QWidget *> ordered = active_;
+    if (!top) {
+        std::reverse(ordered.begin(), ordered.end());
+    }
+    int cursor = top ? area.top() + 24 : area.bottom() - 24;
+    for (QWidget *toast : ordered) {
         toast->adjustSize();
-        const int x = area.right() - toast->width() - 24;
-        const int y = bottom - toast->height();
+        const int x = left ? area.left() + 24 : area.right() - toast->width() - 24;
+        const int y = top ? cursor : cursor - toast->height();
         toast->move(qMax(area.left() + 8, x), qMax(area.top() + 8, y));
-        bottom = y - 8;
+        cursor = top ? y + toast->height() + 8 : y - 8;
     }
 }

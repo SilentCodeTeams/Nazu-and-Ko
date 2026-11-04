@@ -447,6 +447,25 @@ ScannerDialog::ScannerDialog(QWidget *parent) : QDialog(parent) {
     layout->addWidget(pathsLabel);
     layout->addWidget(paths_);
 
+    auto *options = new QHBoxLayout();
+    concurrency_ = new QSpinBox(this);
+    concurrency_->setRange(1, 20);
+    concurrency_->setValue(4);
+    delay_ = new QSpinBox(this);
+    delay_->setRange(0, 5000);
+    delay_->setSingleStep(100);
+    delay_->setSuffix(translate("unit.ms"));
+    stop_ = new QPushButton(translate("tools.scanner.stop"), this);
+    stop_->setEnabled(false);
+    connect(stop_, &QPushButton::clicked, this, &ScannerDialog::stopRun);
+    options->addWidget(new QLabel(translate("tools.scanner.concurrency"), this));
+    options->addWidget(concurrency_);
+    options->addWidget(new QLabel(translate("tools.scanner.delay"), this));
+    options->addWidget(delay_);
+    options->addStretch(1);
+    options->addWidget(stop_);
+    layout->addLayout(options);
+
     results_ = resultTable(this, {translate("tools.scanner.path"), translate("tools.scanner.status"),
                                   translate("tools.scanner.length")});
     layout->addWidget(results_, 1);
@@ -478,24 +497,39 @@ void ScannerDialog::start() {
     }
     results_->setRowCount(0);
     index_ = 0;
+    active_ = 0;
+    completed_ = 0;
+    stopRequested_ = false;
     running_ = true;
     start_->setEnabled(false);
+    stop_->setEnabled(true);
     sendNext();
 }
 
 void ScannerDialog::sendNext() {
-    if (index_ >= queue_.size()) {
-        finishRun();
+    if (stopRequested_) {
+        if (active_ == 0) {
+            finishRun();
+        }
         return;
     }
-    const QString path = queue_.at(index_++);
+    while (!stopRequested_ && active_ < concurrency_->value() && index_ < queue_.size()) {
+        sendOne(queue_.at(index_++));
+    }
+    if (active_ == 0 && index_ >= queue_.size()) {
+        finishRun();
+    }
+}
+
+void ScannerDialog::sendOne(const QString &path) {
     QUrl base = QUrl::fromUserInput(baseUrl_->text().trimmed());
     QUrl target = base.resolved(
         QUrl(path.startsWith(QLatin1Char('/')) ? path : QString(QLatin1Char('/')) + path));
     QNetworkRequest request(target);
     request.setHeader(QNetworkRequest::UserAgentHeader, QStringLiteral("NetTool/0.1"));
     QNetworkReply *reply = manager_->get(request);
-    status_->setText(translate("tools.scanner.progress").arg(index_).arg(queue_.size()));
+    active_ += 1;
+    status_->setText(translate("tools.scanner.progress").arg(completed_).arg(queue_.size()));
     connect(reply, &QNetworkReply::finished, this, [this, reply, path] {
         const int row = results_->rowCount();
         results_->insertRow(row);
@@ -503,12 +537,37 @@ void ScannerDialog::sendNext() {
         results_->setItem(row, 1, new QTableWidgetItem(httpStatus(reply)));
         results_->setItem(row, 2, new QTableWidgetItem(QString::number(reply->readAll().size())));
         reply->deleteLater();
-        sendNext();
+        active_ -= 1;
+        completed_ += 1;
+        status_->setText(translate("tools.scanner.progress").arg(completed_).arg(queue_.size()));
+        if (stopRequested_) {
+            if (active_ == 0) {
+                finishRun();
+            }
+        } else if (delay_->value() > 0) {
+            QTimer::singleShot(delay_->value(), this, &ScannerDialog::sendNext);
+        } else {
+            sendNext();
+        }
     });
 }
 
+void ScannerDialog::stopRun() {
+    stopRequested_ = true;
+    stop_->setEnabled(false);
+    status_->setText(translate("tools.scanner.stopped"));
+    if (active_ == 0) {
+        finishRun();
+    }
+}
+
 void ScannerDialog::finishRun() {
+    if (!running_ || active_ > 0) {
+        return;
+    }
     running_ = false;
     start_->setEnabled(true);
-    status_->setText(translate("tools.scanner.done").arg(queue_.size()));
+    stop_->setEnabled(false);
+    status_->setText(stopRequested_ ? translate("tools.scanner.stopped")
+                                    : translate("tools.scanner.done").arg(queue_.size()));
 }

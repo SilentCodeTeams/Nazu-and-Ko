@@ -184,6 +184,16 @@ SettingsDialog::SettingsDialog(QWidget *parent) : QDialog(parent) {
     notificationDuration_->setSuffix(translate("unit.ms"));
     notificationDuration_->setValue(settings.value(QStringLiteral("notification/duration"), 3000).toInt());
     notificationForm->addRow(translate("dialog.settings.notificationDuration"), notificationDuration_);
+
+    notificationPosition_ = new QComboBox(notifications);
+    notificationPosition_->addItem(translate("notification.position.auto"), QStringLiteral("auto"));
+    notificationPosition_->addItem(translate("notification.position.topRight"), QStringLiteral("top-right"));
+    notificationPosition_->addItem(translate("notification.position.bottomRight"), QStringLiteral("bottom-right"));
+    notificationPosition_->addItem(translate("notification.position.topLeft"), QStringLiteral("top-left"));
+    notificationPosition_->addItem(translate("notification.position.bottomLeft"), QStringLiteral("bottom-left"));
+    const QString position = settings.value(QStringLiteral("notification/position"), QStringLiteral("auto")).toString();
+    notificationPosition_->setCurrentIndex(qMax(0, notificationPosition_->findData(position)));
+    notificationForm->addRow(translate("dialog.settings.notificationPosition"), notificationPosition_);
     tabs->addTab(notifications, translate("dialog.settings.notifications"));
 
     auto *proxy = new QWidget(tabs);
@@ -245,6 +255,8 @@ void SettingsDialog::saveSettings() {
     settings.setValue(QStringLiteral("ui/language"), selectedLanguage);
     settings.setValue(QStringLiteral("notification/enabled"), notificationEnabled_->isChecked());
     settings.setValue(QStringLiteral("notification/duration"), notificationDuration_->value());
+    settings.setValue(QStringLiteral("notification/position"),
+                      notificationPosition_->currentData().toString());
     settings.setValue(QStringLiteral("proxy/listenPort"), listenPort_->value());
     settings.setValue(QStringLiteral("proxy/targetHost"), targetHost_->text().trimmed());
     settings.setValue(QStringLiteral("proxy/targetPort"), targetPort_->value());
