@@ -103,10 +103,12 @@ fn split_host_port(value: &str) -> Result<(String, u16), Box<dyn Error>> {
 }
 
 fn cmd_proxy(args: &[String]) -> CliResult {
-    let listen: SocketAddr = take_flag(args, "--listen")
-        .unwrap_or_else(|| "127.0.0.1:25565".to_string())
-        .parse()
-        .map_err(|_| invalid("bad --listen address".to_string()))?;
+    let listen_value = take_flag(args, "--listen").unwrap_or_else(|| "127.0.0.1:25565".to_string());
+    let listen: SocketAddr = listen_value.parse().map_err(|_| {
+        invalid(format!(
+            "bad --listen address {listen_value}; expected host:port"
+        ))
+    })?;
     let target = take_flag(args, "--target").unwrap_or_else(|| "127.0.0.1:25566".to_string());
     let (target_host, target_port) = split_host_port(&target)?;
     let protocol_name = take_flag(args, "--protocol").unwrap_or_else(|| "auto".to_string());
@@ -314,7 +316,7 @@ fn usage() {
          \x20 nazuko version [--json]\n\
          \n\
          PROXY OPTIONS:\n\
-         \x20 --listen <addr>          default 127.0.0.1:25565\n\
+         \x20 --listen <ip:port>       default 127.0.0.1:25565\n\
          \x20 --target <host:port>     default 127.0.0.1:25566\n\
          \x20 --protocol <mode>        auto | mc | http | tls | dns | ws | quic | raw\n\
          \x20 --pcap <file>            write a real pcap\n\
