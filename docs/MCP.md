@@ -68,10 +68,12 @@ The result is a packet summary object and is also returned as
 ```sh
 nazuko version --json
 nazuko analyze capture.pcap --json --limit 100
+nazuko proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566 --json
 ```
 
-Both commands write one JSON object to stdout. Errors go to stderr with a
-non-zero exit code.
+`version` and `analyze` write one JSON object to stdout. `proxy --json` writes
+one JSON object per captured packet and suppresses the human banner.
+Diagnostics go to stderr with a non-zero exit code.
 
 ## Safety boundary
 

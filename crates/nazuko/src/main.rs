@@ -13,7 +13,7 @@
 //!
 //!   nazuko proxy --listen 127.0.0.1:25565 --target 127.0.0.1:25566
 //!                  [--protocol auto|mc|http|tls|dns|ws|quic|raw]
-//!                  [--pcap out.pcap] [--duration 10] [--quiet]
+//!                  [--pcap out.pcap] [--duration 10] [--quiet] [--json]
 //!                  [--drop-direction c2s|s2c]
 //!
 //!   nazuko serve [--bind 127.0.0.1:0] [--state <file>]
@@ -23,6 +23,7 @@
 //!   nazuko version
 
 mod daemon;
+mod json_sink;
 mod mcp;
 
 use std::env;
@@ -34,6 +35,7 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use json_sink::JsonSink;
 use nettool_capture::read_pcap;
 use nettool_proxy::{
     ConsoleSink, DetectMode, Direction, PcapSink, Proxy, ProxyConfig, RuleSet, SharedSink,
@@ -112,6 +114,7 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         .ok_or_else(|| invalid(format!("bad --protocol: {protocol_name}")))?;
     let pcap = take_flag(args, "--pcap").map(PathBuf::from);
     let quiet = has_flag(args, "--quiet");
+    let json = has_flag(args, "--json");
     let drop_direction = match take_flag(args, "--drop-direction") {
         Some(value) => Some(
             Direction::parse(&value)
@@ -138,7 +141,9 @@ fn cmd_proxy(args: &[String]) -> CliResult {
     if let Some(path) = &pcap {
         sinks.push(Arc::new(Mutex::new(PcapSink::create(path)?)));
     }
-    if !quiet {
+    if json {
+        sinks.push(Arc::new(Mutex::new(JsonSink::new(io::stdout()))));
+    } else if !quiet {
         sinks.push(Arc::new(Mutex::new(ConsoleSink::new())));
     }
 
@@ -153,14 +158,18 @@ fn cmd_proxy(args: &[String]) -> CliResult {
         rules,
         duration,
     };
-    println!("nazuko proxy");
-    println!("  listen: {}", config.listen);
-    println!("  target: {}:{}", config.target_host, config.target_port);
-    if !config.rules.is_empty() {
-        println!("  rules: {}", config.rules.len());
+    if !json {
+        println!("nazuko proxy");
+        println!("  listen: {}", config.listen);
+        println!("  target: {}:{}", config.target_host, config.target_port);
+        if !config.rules.is_empty() {
+            println!("  rules: {}", config.rules.len());
+        }
     }
     let proxy = Proxy::bind(config)?;
-    println!("  bound: {}", proxy.local_addr()?);
+    if !json {
+        println!("  bound: {}", proxy.local_addr()?);
+    }
     proxy.run()?;
     Ok(())
 }
@@ -312,7 +321,8 @@ fn usage() {
          \x20 --duration <seconds>     stop accepting after N seconds\n\
          \x20 --drop-direction <dir>   drop c2s or s2c (still captured)\n\
          \x20 --rule <expr>            repeatable drop/allow predicate\n\
-         \x20 --quiet                  suppress per-packet output\n\
+         \x20 --quiet                  suppress console per-packet output\n\
+         \x20 --json                   emit newline-delimited packet JSON\n\
          \n\
          RULE EXAMPLES:\n\
          \x20 --rule 'drop dir=c2s proto=mc contains=hello'\n\
