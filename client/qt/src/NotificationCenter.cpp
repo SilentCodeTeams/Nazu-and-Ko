@@ -34,7 +34,7 @@ void NotificationCenter::show(const QString &message, Level level) {
 
     QString background = QStringLiteral("#1F2937");
     if (level == Level::Success) {
-        background = QStringLiteral("#0F766E");
+        background = QStringLiteral("#111111");
     } else if (level == Level::Error) {
         background = QStringLiteral("#B42318");
     }
