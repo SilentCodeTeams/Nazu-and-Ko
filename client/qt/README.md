@@ -15,6 +15,10 @@ Run:
 
     ./build/qt/nettool-qt
 
+The v2 shell preview is separate and keeps the old client intact:
+
+    ./build/qt/nettool-qt-v2
+
 Headless construction check:
 
     QT_QPA_PLATFORM=offscreen ./build/qt/nettool-qt --smoke-test
